@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "params": [
+    { "id": "root", "label": "Note", "kind": "choice", "min": 0, "max": 11, "default": 0,
+      "choices": ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"],
+      "group": "Main", "automatable": false },
+    { "id": "scale", "label": "Scale", "kind": "choice", "min": 0, "max": 19, "default": 0,
+      "choices": ["Major", "Natural Minor", "Harmonic Minor", "Melodic Minor", "Dorian", "Phrygian", "Lydian",
+                  "Mixolydian", "Locrian", "Phrygian Dominant", "Hungarian Minor", "Double Harmonic",
+                  "Major Pentatonic", "Minor Pentatonic", "Blues", "Whole Tone", "Diminished", "Hirajoshi",
+                  "In", "Chromatic"],
+      "group": "Main", "automatable": false },
+    { "id": "loop", "label": "Loop", "kind": "int", "min": 1, "max": 32, "default": 8,
+      "unit": "beats", "group": "Main", "automatable": false },
+    { "id": "chordMin", "label": "Chord Length Min", "kind": "int", "min": 1, "max": 32, "default": 1,
+      "unit": "beats", "group": "Main", "automatable": true },
+    { "id": "chordMax", "label": "Chord Length Max", "kind": "int", "min": 1, "max": 32, "default": 3,
+      "unit": "beats", "group": "Main", "automatable": true },
+    { "id": "octaveMin", "label": "Octave Min", "kind": "int", "min": 0, "max": 6, "default": 2,
+      "group": "Main", "automatable": true },
+    { "id": "octaveMax", "label": "Octave Max", "kind": "int", "min": 0, "max": 6, "default": 3,
+      "group": "Main", "automatable": true },
+    { "id": "shuffle", "label": "Shuffle", "kind": "trigger", "min": 0, "max": 1, "default": 0,
+      "group": "Main", "automatable": true },
+    { "id": "drift", "label": "Drift Offset", "kind": "float", "min": 0, "max": 1, "default": 0,
+      "group": "Additional", "automatable": false },
+    { "id": "density", "label": "Scale Density", "kind": "float", "min": 0, "max": 1, "default": 0.8,
+      "group": "Additional", "automatable": true },
+    { "id": "notesCount", "label": "Notes Count", "kind": "int", "min": 1, "max": 6, "default": 3,
+      "group": "Additional", "automatable": true }
+  ]
+}

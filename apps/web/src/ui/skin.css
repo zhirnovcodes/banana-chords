@@ -1,0 +1,187 @@
+.bc-skin {
+  --bc-bg: #16140e;
+  --bc-panel: #211e15;
+  --bc-line: #3a3524;
+  --bc-text: #f3eedc;
+  --bc-muted: #9d977f;
+  --bc-accent: #f5d23c;
+  --bc-accent-ink: #1d1a0c;
+  --bc-block: #2d2918;
+  --bc-block-alt: #343019;
+
+  box-sizing: border-box;
+  width: 560px;
+  padding: 16px;
+  background: var(--bc-bg);
+  color: var(--bc-text);
+  font: 13px/1.3 system-ui, -apple-system, 'Segoe UI', sans-serif;
+  border-radius: 10px;
+  user-select: none;
+}
+.bc-skin *,
+.bc-skin *::before,
+.bc-skin *::after {
+  box-sizing: border-box;
+}
+
+.bc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.bc-title {
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  font-size: 15px;
+}
+.bc-logo {
+  color: var(--bc-accent);
+}
+.bc-logo2 {
+  margin-left: 6px;
+  color: var(--bc-text);
+}
+.bc-shuffle {
+  font: inherit;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--bc-accent);
+  color: var(--bc-accent-ink);
+  cursor: pointer;
+}
+.bc-shuffle:hover {
+  filter: brightness(1.08);
+}
+.bc-shuffle:active {
+  transform: translateY(1px);
+}
+.bc-shuffle:focus-visible,
+.bc-range:focus-visible,
+.bc-select:focus-visible {
+  outline: 2px solid var(--bc-accent);
+  outline-offset: 2px;
+}
+
+.bc-timeline {
+  position: relative;
+  height: 112px;
+  background: var(--bc-panel);
+  border: 1px solid var(--bc-line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.bc-blocks {
+  position: absolute;
+  inset: 0;
+}
+.bc-block {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--bc-block);
+  border-right: 1px solid var(--bc-line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: background-color 80ms linear;
+}
+.bc-block.bc-alt {
+  background: var(--bc-block-alt);
+}
+.bc-block.bc-active {
+  background: var(--bc-accent);
+  color: var(--bc-accent-ink);
+}
+.bc-notes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.bc-note {
+  white-space: nowrap;
+}
+.bc-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--bc-text);
+  pointer-events: none;
+}
+
+.bc-ruler {
+  position: relative;
+  height: 16px;
+  margin-bottom: 12px;
+}
+.bc-tick {
+  position: absolute;
+  top: 0;
+  height: 16px;
+  border-left: 1px solid var(--bc-line);
+  padding-left: 3px;
+  font-size: 10px;
+  color: var(--bc-muted);
+}
+
+.bc-groups {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.bc-group {
+  background: var(--bc-panel);
+  border: 1px solid var(--bc-line);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.bc-group-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--bc-muted);
+  margin-bottom: 6px;
+}
+.bc-row {
+  display: grid;
+  grid-template-columns: 96px 1fr 58px;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+}
+.bc-row:has(.bc-select) {
+  grid-template-columns: 96px 1fr;
+}
+.bc-label {
+  color: var(--bc-muted);
+  white-space: nowrap;
+}
+.bc-value {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.bc-select {
+  font: inherit;
+  width: 100%;
+  padding: 3px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--bc-line);
+  background: var(--bc-bg);
+  color: var(--bc-text);
+}
+.bc-range {
+  width: 100%;
+  accent-color: var(--bc-accent);
+  margin: 0;
+}
