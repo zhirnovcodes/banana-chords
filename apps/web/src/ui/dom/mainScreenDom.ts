@@ -7,8 +7,8 @@ import { arrowDown, centredLabel, div, label, PixelButton, PixelSlider } from '.
 export const SCALE_ROWS = 5;
 
 /**
- * The big screen, Figma Frame 4 (screen 1, and screen 2 with the SCALE list open).
- * Coordinates: px on the device (Frame 4 minus the device origin).
+ * The big screen: Figma Frame 6 (layout), Frame 4 screen 2 (the SCALE list open).
+ * Coordinates: px on the device (the Figma frame minus the device origin).
  */
 export class MainScreenDomView implements MainScreenView {
   readonly el: HTMLDivElement;
@@ -22,18 +22,18 @@ export class MainScreenDomView implements MainScreenView {
   readonly lengthMinChanged: Emitter<Edit>;
   readonly lengthMaxChanged: Emitter<Edit>;
   readonly driftChanged: Emitter<Edit>;
-  readonly notesChanged: Emitter<Edit>;
+  readonly notesDownClicked = new Emitter<void>();
+  readonly notesUpClicked = new Emitter<void>();
   readonly densityChanged: Emitter<Edit>;
 
   private readonly note: HTMLDivElement;
   private readonly scale: HTMLDivElement;
   private readonly loopLabel: HTMLDivElement;
   private readonly lengthLabel: HTMLDivElement;
-  private readonly notesLabel: HTMLDivElement;
+  private readonly notesValue: HTMLDivElement;
   private readonly loop: PixelSlider;
   private readonly length: PixelSlider;
   private readonly drift: PixelSlider;
-  private readonly notes: PixelSlider;
   private readonly density: PixelSlider;
   private readonly scaleButton: PixelButton;
   private readonly list: HTMLDivElement;
@@ -64,24 +64,26 @@ export class MainScreenDomView implements MainScreenView {
     this.scaleButton.clicked.on(() => this.scaleButtonClicked.emit());
     field.addEventListener('click', () => this.scaleButtonClicked.emit());
 
-    // Left column: LOOP, DRIFT, DENSITY
+    // Frame 6 rows 2-3: LOOP and LEN (two handles) across the screen
     this.loopLabel = label(doc, '', 19, 46.7);
-    this.loop = new PixelSlider(doc, 75, 137, 50, { label: 'Loop' });
-    this.drift = new PixelSlider(doc, 63, 137, 72, { label: 'Drift' });
-    this.density = new PixelSlider(doc, 70, 137, 94, { label: 'Density' });
+    this.loop = new PixelSlider(doc, 98, 282, 50, { label: 'Loop' });
+    this.lengthLabel = label(doc, '', 19, 68.7);
+    this.length = new PixelSlider(doc, 98, 282, 72, { label: 'Chord length', handles: 2 });
 
-    // Right column: LEN (two handles), NOTES
-    this.lengthLabel = label(doc, '', 146, 46.7);
-    this.length = new PixelSlider(doc, 217, 281, 50, { label: 'Chord length', handles: 2 });
-    this.notesLabel = label(doc, '', 146, 68.7);
-    this.notes = new PixelSlider(doc, 205, 281, 72, { label: 'Notes' });
+    // Row 4: DENSITY, DRIFT, NOTES - n +
+    this.density = new PixelSlider(doc, 70, 114, 94, { label: 'Density' });
+    this.drift = new PixelSlider(doc, 157, 202, 94, { label: 'Drift' });
+    const notesDown = new PixelButton(doc, { x: 250, y: 90, w: 9, h: 10 }, '-', 'Fewer notes');
+    const notesUp = new PixelButton(doc, { x: 272, y: 90, w: 9, h: 10 }, '+', 'More notes');
+    notesDown.clicked.on(() => this.notesDownClicked.emit());
+    notesUp.clicked.on(() => this.notesUpClicked.emit());
+    this.notesValue = centredLabel(doc, '', 266, 90.7);
 
     this.loopChanged = this.loop.edited[0];
     this.driftChanged = this.drift.edited[0];
     this.densityChanged = this.density.edited[0];
     this.lengthMinChanged = this.length.edited[0];
     this.lengthMaxChanged = this.length.edited[1];
-    this.notesChanged = this.notes.edited[0];
 
     // Screen 2: the SCALE list over the right column
     this.list = div(doc, 'bc-list', { x: 154, y: 21, w: 109, h: 76 });
@@ -126,14 +128,16 @@ export class MainScreenDomView implements MainScreenView {
       this.scaleButton.el,
       this.loopLabel,
       this.loop.el,
-      label(doc, 'DRIFT', 19, 68.7),
-      this.drift.el,
-      label(doc, 'DENSITY', 19, 90.7),
-      this.density.el,
       this.lengthLabel,
       this.length.el,
-      this.notesLabel,
-      this.notes.el,
+      label(doc, 'DENSITY', 19, 90.7),
+      this.density.el,
+      label(doc, 'DRIFT', 120, 90.7),
+      this.drift.el,
+      label(doc, 'NOTES', 211, 90.7),
+      notesDown.el,
+      this.notesValue,
+      notesUp.el,
       this.list,
     );
   }
@@ -207,9 +211,8 @@ export class MainScreenDomView implements MainScreenView {
     this.drift.set(0, position);
   }
 
-  setNotes(text: string, position: number): void {
-    this.notesLabel.textContent = text;
-    this.notes.set(0, position);
+  setNotes(text: string): void {
+    this.notesValue.textContent = text;
   }
 
   setDensity(position: number): void {

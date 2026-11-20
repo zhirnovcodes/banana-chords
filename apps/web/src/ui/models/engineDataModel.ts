@@ -49,6 +49,11 @@ export class EngineDataModel {
     this.apply('additional', { ...this.data, additional: value });
   }
 
+  /** Pitch classes of the selected scale on the selected root, from the core (bit k = pitch class k). */
+  getScaleMask(): number {
+    return this.bridge.scaleMask();
+  }
+
   /** The SHUFFLE button: new seeds for every sequence. */
   shuffle(): void {
     this.bridge.set('shuffle', 1, 'begin');

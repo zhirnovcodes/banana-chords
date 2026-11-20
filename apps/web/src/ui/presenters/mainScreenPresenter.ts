@@ -39,7 +39,8 @@ export class MainScreenPresenter {
     this.subs.add(view.lengthMinChanged.on((edit) => applyEdit(engine, 'chordMin', edit)));
     this.subs.add(view.lengthMaxChanged.on((edit) => applyEdit(engine, 'chordMax', edit)));
     this.subs.add(view.driftChanged.on((edit) => applyEdit(engine, 'drift', edit)));
-    this.subs.add(view.notesChanged.on((edit) => applyEdit(engine, 'notesCount', edit)));
+    this.subs.add(view.notesDownClicked.on(() => stepParam(engine, 'notesCount', -1)));
+    this.subs.add(view.notesUpClicked.on(() => stepParam(engine, 'notesCount', +1)));
     this.subs.add(view.densityChanged.on((edit) => applyEdit(engine, 'density', edit)));
 
     this.subs.add(engine.changed.on((index) => mine.has(index) && this.showAll()));
@@ -59,7 +60,7 @@ export class MainScreenPresenter {
     view.setLoop(loopText(data), readPosition(engine, 'loop'));
     view.setLength(lengthText(data), readPosition(engine, 'chordMin'), readPosition(engine, 'chordMax'));
     view.setDrift(readPosition(engine, 'drift'));
-    view.setNotes(notesText(data), readPosition(engine, 'notesCount'));
+    view.setNotes(notesText(data));
     view.setDensity(readPosition(engine, 'density'));
   }
 

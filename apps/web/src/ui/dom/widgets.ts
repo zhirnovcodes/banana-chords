@@ -75,12 +75,15 @@ export function arrowDown(doc: Document): SVGSVGElement {
   return svg;
 }
 
+/** Slider handle width (Figma Frame 6). */
+const HANDLE_W = 6;
+
 export interface SliderOptions {
   label: string;
 }
 
 /**
- * A slider from Figma Frame 4: a 2 px black line and 4 x 8 handles (#DCDDD9, 1 px #AEAFAB shadow).
+ * A slider from Figma Frame 6: a 2 px black line and 6 x 10 handles (#DCDDD9, 1 px #AEAFAB shadow).
  * One handle, or two (LEN: min and max). Drag a handle, click the line (nearest handle moves), wheel, arrow keys.
  */
 export class PixelSlider {
@@ -105,7 +108,7 @@ export class PixelSlider {
     this.edited = Array.from({ length: count }, () => new Emitter<Edit>());
     this.positions = Array.from({ length: count }, () => 0);
     this.handles = Array.from({ length: count }, (_, i) => {
-      const h = div(doc, 'bc-handle', { x: 0, y: 1, w: 4, h: 8 });
+      const h = div(doc, 'bc-handle', { x: 0, y: 0, w: HANDLE_W, h: 10 });
       h.tabIndex = 0;
       h.setAttribute('role', 'slider');
       h.setAttribute('aria-label', count === 2 ? `${options.label} ${i === 0 ? 'min' : 'max'}` : options.label);
@@ -154,7 +157,7 @@ export class PixelSlider {
   /** Handle `i` to position 0..1. */
   set(i: number, v: number): void {
     this.positions[i] = clamp(v);
-    this.handles[i].style.left = `${Math.round(this.positions[i] * (this.x1 - this.x0 - 4))}px`;
+    this.handles[i].style.left = `${Math.round(this.positions[i] * (this.x1 - this.x0 - HANDLE_W))}px`;
     this.handles[i].setAttribute('aria-valuenow', this.positions[i].toFixed(3));
   }
 
@@ -173,7 +176,7 @@ export class PixelSlider {
     const rect = this.el.getBoundingClientRect();
     const width = this.x1 - this.x0;
     const x = ((clientX - rect.left) / rect.width) * width;
-    return clamp((x - 2) / (width - 4));
+    return clamp((x - HANDLE_W / 2) / (width - HANDLE_W));
   }
 }
 

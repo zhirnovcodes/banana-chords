@@ -4,9 +4,6 @@
 
 import type { ParameterInfo } from 'ivandaw-core';
 import { createUi, DEVICE } from './app';
-import cardboardUrl from './assets/cardboard.jpg';
-import shuffleUrl from './assets/label-shuffle.png';
-import titleUrl from './assets/title-banana-chords.png';
 import deviceSvg from './device/device.svg?raw';
 import { FrameDomView } from './dom/frameDom';
 import { MainScreenDomView } from './dom/mainScreenDom';
@@ -30,6 +27,8 @@ export interface SkinBridge {
   onView(cb: () => void): () => void;
   /** Beat now, or null when stopped. */
   playhead(): number | null;
+  /** Pitch classes of the selected scale on the selected root, from the core: bit k = pitch class k (0 = C). */
+  scaleMask(): number;
 }
 
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
@@ -67,13 +66,10 @@ function holdStyles(doc: Document): () => void {
 
 let instances = 0;
 
-/** device.svg with bundled image URLs, and its ids made unique: two plugin instances share a document. */
+/** device.svg with its ids made unique: two plugin instances share a document. */
 function deviceMarkup(): string {
   const prefix = `bc${++instances}-`;
   return deviceSvg
-    .replace('../assets/cardboard.jpg', cardboardUrl)
-    .replace('../assets/label-shuffle.png', shuffleUrl)
-    .replace('../assets/title-banana-chords.png', titleUrl)
     .replace(/\bid="([^"]+)"/g, `id="${prefix}$1"`)
     .replace(/url\(#([^)]+)\)/g, `url(#${prefix}$1)`);
 }

@@ -15,7 +15,8 @@ const param = (id: string) => PARAMS.find((p) => p.id === id)!;
 
 /**
  * In-memory bridge that behaves like hosts/web/plugin.ts: no echo for the skin's own changes,
- * the engine keeps Octave Min ≤ Max and tells everyone about the one it moved.
+ * the engine keeps Octave and Chord Length Min ≤ Max and tells everyone about the one it moved.
+ * The scale mask is whatever the test sets (the core computes it in the plugin; bc_tests checks that).
  */
 function fakeBridge(overrides: Record<string, number> = {}) {
   const values = new Map(PARAMS.map((p) => [p.id, toNormalized(p, overrides[p.id] ?? p.default)]));
@@ -34,6 +35,8 @@ function fakeBridge(overrides: Record<string, number> = {}) {
       values.set(id, n);
       if (id === 'octaveMin' && plain('octaveMin') > plain('octaveMax')) push('octaveMax', plain('octaveMin'));
       if (id === 'octaveMax' && plain('octaveMax') < plain('octaveMin')) push('octaveMin', plain('octaveMax'));
+      if (id === 'chordMin' && plain('chordMin') > plain('chordMax')) push('chordMax', plain('chordMin'));
+      if (id === 'chordMax' && plain('chordMax') < plain('chordMin')) push('chordMin', plain('chordMax'));
     },
     onParam(cb) {
       listeners.add(cb);
@@ -42,8 +45,10 @@ function fakeBridge(overrides: Record<string, number> = {}) {
     view: () => ({ loop: 8, chords: [] }),
     onView: () => () => {},
     playhead: () => null,
+    scaleMask: () => state.mask,
   };
-  return { bridge, calls, plain, push, listenerCount: () => listeners.size };
+  const state = { mask: 0b101010110101 }; // C major
+  return { bridge, calls, plain, push, state, listenerCount: () => listeners.size };
 }
 
 function fakeViews() {
@@ -57,7 +62,7 @@ function fakeViews() {
     loop: { label: '', pos: 0 },
     length: { label: '', min: 0, max: 0 },
     drift: 0,
-    notes: { label: '', pos: 0 },
+    notes: '',
     density: 0,
     setNote(t: string) { this.note = t; },
     setScale(t: string) { this.scale = t; },
@@ -69,7 +74,7 @@ function fakeViews() {
     setLoop(label: string, pos: number) { this.loop = { label, pos }; },
     setLength(label: string, min: number, max: number) { this.length = { label, min, max }; },
     setDrift(p: number) { this.drift = p; },
-    setNotes(label: string, pos: number) { this.notes = { label, pos }; },
+    setNotes(t: string) { this.notes = t; },
     setDensity(p: number) { this.density = p; },
     noteLeftClicked: new Emitter<void>(),
     noteRightClicked: new Emitter<void>(),
@@ -80,7 +85,8 @@ function fakeViews() {
     lengthMinChanged: new Emitter<Edit>(),
     lengthMaxChanged: new Emitter<Edit>(),
     driftChanged: new Emitter<Edit>(),
-    notesChanged: new Emitter<Edit>(),
+    notesDownClicked: new Emitter<void>(),
+    notesUpClicked: new Emitter<void>(),
     densityChanged: new Emitter<Edit>(),
   } satisfies MainScreenView & Record<string, unknown>;
   const piano = {
@@ -138,7 +144,7 @@ describe('main screen', () => {
     expect(main.scaleList).toEqual(SCALE_NAMES);
     expect(main.loop.label).toBe('LOOP(8)');
     expect(main.length.label).toBe('LEN(1-3)');
-    expect(main.notes.label).toBe('NOTES(3)');
+    expect(main.notes).toBe('3');
     expect(main.density).toBeCloseTo(0.8);
     expect(main.listOpen).toBe(false);
   });
@@ -190,10 +196,26 @@ describe('main screen', () => {
     expect(main.length.label).toBe('LEN(16-32)');
   });
 
+  it('LEN min past max takes max along (engine rule), and the label follows', () => {
+    const { main, plain } = setup({ chordMin: 2, chordMax: 4 });
+    main.lengthMinChanged.emit({ value: toNormalized(param('chordMin'), 8) });
+    expect([plain('chordMin'), plain('chordMax')]).toEqual([8, 8]);
+    expect(main.length.label).toBe('LEN(8-8)');
+    expect(main.length.min).toBeCloseTo(main.length.max);
+  });
+
+  it('NOTES - + step the notes count and stop at 1 and 6', () => {
+    const { main, plain } = setup({ notesCount: 6 });
+    main.notesUpClicked.emit();
+    expect(plain('notesCount')).toBe(6);
+    main.notesDownClicked.emit();
+    expect(main.notes).toBe('5');
+  });
+
   it('follows changes from outside (automation, state load)', () => {
     const { main, push } = setup();
     push('notesCount', 4);
-    expect(main.notes.label).toBe('NOTES(4)');
+    expect(main.notes).toBe('4');
   });
 });
 
@@ -212,6 +234,16 @@ describe('piano screen', () => {
     piano.octaveMinUpClicked.emit();
     expect([plain('octaveMin'), plain('octaveMax')]).toEqual([4, 4]);
     expect([piano.min, piano.max]).toEqual(['4', '4']);
+  });
+});
+
+describe('piano dots', () => {
+  it('shows the core scale mask, C..B, and follows root and scale changes', () => {
+    const { piano, main, state } = setup();
+    expect(piano.dots).toEqual([true, false, true, false, true, true, false, true, false, true, false, true]);
+    state.mask = (1 << 9) | (1 << 0) | (1 << 2) | (1 << 4) | (1 << 7); // A minor pentatonic
+    main.noteRightClicked.emit(); // root changed → dots read again
+    expect(piano.dots.map((on, pc) => (on ? pc : -1)).filter((pc) => pc >= 0)).toEqual([0, 2, 4, 7, 9]);
   });
 });
 

@@ -30,7 +30,7 @@ export interface MainScreenView {
   setLoop(label: string, position: number): void;
   readonly loopChanged: Event<Edit>;
 
-  /** LEN(min-max): one slider, two handles. */
+  /** LEN(min-max): one slider, two handles. The engine keeps min ≤ max. */
   setLength(label: string, minPosition: number, maxPosition: number): void;
   readonly lengthMinChanged: Event<Edit>;
   readonly lengthMaxChanged: Event<Edit>;
@@ -39,9 +39,10 @@ export interface MainScreenView {
   setDrift(position: number): void;
   readonly driftChanged: Event<Edit>;
 
-  /** NOTES(n) slider. */
-  setNotes(label: string, position: number): void;
-  readonly notesChanged: Event<Edit>;
+  /** NOTES - n + (Figma Frame 6): a stepper. */
+  setNotes(text: string): void;
+  readonly notesDownClicked: Event<void>;
+  readonly notesUpClicked: Event<void>;
 
   /** DENSITY slider. */
   setDensity(position: number): void;

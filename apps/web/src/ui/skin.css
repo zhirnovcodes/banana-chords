@@ -149,3 +149,15 @@
 .bc-shuffle-down .bc-btn-shadow {
   opacity: 0.2;
 }
+
+/* Piano (Figma Frame 6): outlined white keys on the screen, black keys, 2 x 2 red dots */
+.bc-white {
+  border: 1px solid var(--bc-ink);
+}
+.bc-black {
+  background: var(--bc-ink);
+}
+.bc-dot {
+  z-index: 1;
+  background: #ff0004;
+}

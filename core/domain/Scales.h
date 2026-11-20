@@ -42,4 +42,13 @@ inline int degreeToSemitones(const Scale& s, int degree) {
     return octave * 12 + s.steps[index];
 }
 
+// Pitch classes of `scale` on `root` (0 = C): bit k set = pitch class k is in the scale. For UIs (piano dots).
+inline int scalePitchMask(int scale, int root) {
+    if (scale < 0 || scale >= kScaleCount) return 0;
+    const Scale& s = kScales[scale];
+    int mask = 0;
+    for (int i = 0; i < s.size; ++i) mask |= 1 << (((root % 12 + 12) % 12 + s.steps[i]) % 12);
+    return mask;
+}
+
 } // namespace bc
