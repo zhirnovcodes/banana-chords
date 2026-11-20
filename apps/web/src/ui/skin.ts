@@ -4,6 +4,7 @@
 
 import type { ParameterInfo } from 'ivandaw-core';
 import { createUi, DEVICE } from './app';
+import plasticUrl from './assets/plastic.jpg';
 import deviceSvg from './device/device.svg?raw';
 import { FrameDomView } from './dom/frameDom';
 import { MainScreenDomView } from './dom/mainScreenDom';
@@ -66,10 +67,11 @@ function holdStyles(doc: Document): () => void {
 
 let instances = 0;
 
-/** device.svg with its ids made unique: two plugin instances share a document. */
+/** device.svg with the bundled texture URL, and its ids made unique: two plugin instances share a document. */
 function deviceMarkup(): string {
   const prefix = `bc${++instances}-`;
   return deviceSvg
+    .replace('../assets/plastic.jpg', plasticUrl)
     .replace(/\bid="([^"]+)"/g, `id="${prefix}$1"`)
     .replace(/url\(#([^)]+)\)/g, `url(#${prefix}$1)`);
 }

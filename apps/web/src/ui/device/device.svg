@@ -1,18 +1,22 @@
 <svg width="298" height="169" viewBox="0 0 298 169" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <!-- Geometry = Figma Frame 4 / Frame 6 (device origin subtracted). -->
   <defs>
-    <!-- Plastic, same recipe as AxolotlPad device.svg (milky haze, thick-edge refraction, specular). No white rim. -->
-    <clipPath id="bodyClip"><rect width="298" height="169"/></clipPath>
-    <filter id="blur2" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2"/></filter>
-    <filter id="blur3" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3"/></filter>
-    <filter id="haze" x="0" y="0" width="100%" height="100%">
-      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" seed="9" result="n"/>
-      <feColorMatrix in="n" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.9 -0.42"/>
+    <!-- Plastic: Ivan's plastic photo as a detail map (assets/plastic.jpg: grey, mean moved to 50 %), laid over
+         #D8BC8E with overlay, so the colour stays #D8BC8E and the photo's mottling and top-left shine show. -->
+
+    <!-- Rounded edge where the frame dips into each screen opening (a few px), lit from the top-left:
+         the frame's alpha, blurred, is the height map; diffuse light minus the flat level gives
+         highlights (lower / right rims) and shade (upper / left rims). -->
+    <filter id="rim" filterUnits="userSpaceOnUse" x="-20" y="-20" width="338" height="209" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1" result="h"/>
+      <feDiffuseLighting in="h" surfaceScale="2.5" diffuseConstant="1" lighting-color="#fff" result="l">
+        <feDistantLight azimuth="225" elevation="40"/>
+      </feDiffuseLighting>
+      <feColorMatrix in="l" type="matrix" result="hi" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 0.96  2 0 0 0 -1.286"/>
+      <feColorMatrix in="l" type="matrix" result="lo" values="0 0 0 0 0.35  0 0 0 0 0.25  0 0 0 0 0.12  -1.4 0 0 0 0.9"/>
+      <feMerge result="m"><feMergeNode in="lo"/><feMergeNode in="hi"/></feMerge>
+      <feComposite in="m" in2="SourceAlpha" operator="in"/>
     </filter>
-    <linearGradient id="spec" x1="0" y1="0" x2="1" y2="0.6">
-      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/>
-      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
-    </linearGradient>
 
     <!-- LCD detail: fine pixel grid (screen references: Nokia / BlackBerry LCD) -->
     <pattern id="lcd" patternUnits="userSpaceOnUse" width="1.5" height="1.5">
@@ -78,17 +82,17 @@
     </filter>
   </defs>
 
-  <!-- Frame: #D8BC8E plastic (AxolotlPad: haze, refraction at the thick lower edge, specular streak + hot spots) -->
-  <g id="frame">
-    <g clip-path="url(#bodyClip)">
-      <rect id="body" width="298" height="169" fill="#D8BC8E"/>
-      <rect id="body-haze" width="298" height="169" filter="url(#haze)"/>
-      <rect width="298" height="169" fill="none" stroke="#A88A5C" stroke-width="8" opacity="0.35" transform="translate(-3 -4)" filter="url(#blur3)"/>
-      <path d="M3 110 C3 48 6 9 60 4 C24 12 8 40 7 110 Z" fill="url(#spec)" filter="url(#blur2)" opacity="0.8"/>
-      <ellipse cx="292" cy="10" rx="5" ry="2.5" transform="rotate(40 292 10)" fill="#FFFFFF" opacity="0.6" filter="url(#blur2)"/>
-      <ellipse cx="5" cy="150" rx="2" ry="9" transform="rotate(-10 5 150)" fill="#FFFFFF" opacity="0.5" filter="url(#blur2)"/>
-    </g>
+  <!-- Frame: #D8BC8E plastic (Ivan's plastic photo, overlay) -->
+  <g id="frame" style="isolation:isolate">
+    <rect id="body" width="298" height="169" fill="#D8BC8E"/>
+    <image id="body-texture" href="../assets/plastic.jpg" width="298" height="169" preserveAspectRatio="xMinYMin slice" style="mix-blend-mode:overlay"/>
   </g>
+  <!-- Rounded edge around the screen openings (frame with the two screens cut out; extends past the device so
+       its outer border gets no edge) -->
+  <path id="frame-rim" fill="#000" fill-rule="evenodd" filter="url(#rim)"
+    d="M-20 -20H318V189H-20Z
+       M20 13H279A9 9 0 0 1 288 22V101A9 9 0 0 1 279 110H20A9 9 0 0 1 11 101V22A9 9 0 0 1 20 13Z
+       M145 117H284A4 4 0 0 1 288 121V157A4 4 0 0 1 284 161H145A4 4 0 0 1 141 157V121A4 4 0 0 1 145 117Z"/>
 
   <!-- Screens: flat LCD, frame shadow on top, no stroke -->
   <g id="screen-main">
