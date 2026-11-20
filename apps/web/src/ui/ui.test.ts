@@ -3,7 +3,7 @@ import { PARAMS, toNormalized, toPlain } from '../../../../hosts/web/params';
 import { createUi, DEVICE } from './app';
 import { Emitter } from './core/event';
 import { DATA_PARAMS, PARAM_PATHS } from './data/engineData';
-import { SCALE_NAMES } from './data/paramText';
+import { SCALE_NAMES, SCALE_TEXT_LENGTH } from './data/paramText';
 import type { SkinBridge } from './skin';
 import type { Edit } from './views/edit';
 import type { FrameView } from './views/frameView';
@@ -125,7 +125,7 @@ describe('plugin size', () => {
   it('is the Figma device size, 298 x 169', () => {
     expect(DEVICE).toEqual({ width: 298, height: 169 });
   });
-  it.todo('manifest ui size = DEVICE (switches with the new skin in step 5)', () => {
+  it('manifest ui size = DEVICE', () => {
     expect([manifest.ui?.width, manifest.ui?.height]).toEqual([DEVICE.width, DEVICE.height]);
   });
 });
@@ -136,11 +136,15 @@ describe('main screen', () => {
     expect(main.note).toBe('C');
     expect(main.scale).toBe('MAJOR');
     expect(main.scaleList).toEqual(SCALE_NAMES);
-    expect(main.loop.label).toBe('LOOP (8)');
+    expect(main.loop.label).toBe('LOOP(8)');
     expect(main.length.label).toBe('LEN(1-3)');
     expect(main.notes.label).toBe('NOTES(3)');
     expect(main.density).toBeCloseTo(0.8);
     expect(main.listOpen).toBe(false);
+  });
+
+  it('every scale name fits the SCALE list (12 characters)', () => {
+    for (const name of SCALE_NAMES) expect(name.length, name).toBeLessThanOrEqual(SCALE_TEXT_LENGTH);
   });
 
   it('NOTE < > wraps around', () => {
@@ -162,7 +166,7 @@ describe('main screen', () => {
     main.scaleButtonClicked.emit();
     main.scaleSelected.emit(13);
     expect(plain('scale')).toBe(13);
-    expect(main.scale).toBe('MINOR PENTATONIC');
+    expect(main.scale).toBe('MIN. PENTA');
     expect(main.scaleValue).toBe(13);
     expect(main.listOpen).toBe(false);
   });
@@ -175,7 +179,7 @@ describe('main screen', () => {
     expect(calls[0]).toMatch(/^loop=.* begin$/);
     expect(calls.at(-1)).toMatch(/^loop=1 end$/);
     expect(plain('loop')).toBe(32);
-    expect(main.loop.label).toBe('LOOP (32)');
+    expect(main.loop.label).toBe('LOOP(32)');
   });
 
   it('LEN has two handles: chordMin and chordMax', () => {

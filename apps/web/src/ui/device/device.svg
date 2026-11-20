@@ -3,7 +3,7 @@
   <defs>
     <!-- Ivan's cardboard photo, shrunk so the grain is small -->
     <pattern id="cardboard" patternUnits="userSpaceOnUse" width="843" height="547" patternTransform="scale(0.3)">
-      <image href="../assets/cardboard.png" width="843" height="547"/>
+      <image href="../assets/cardboard.jpg" width="843" height="547"/>
     </pattern>
 
     <!-- LCD detail: fine pixel grid (screen references: Nokia / BlackBerry LCD) -->
@@ -94,10 +94,10 @@
 
   <!-- Button: prototype face 107x20 at 17,136; side #C99795 shows as the pad's thickness below -->
   <g id="button-shuffle">
-    <rect id="btn-shadow" x="18" y="142" width="108" height="19" rx="4" fill="#3d2a18" opacity="0.45" filter="url(#btn-drop)"/>
+    <rect id="btn-shadow" class="bc-btn-shadow" x="18" y="142" width="108" height="19" rx="4" fill="#3d2a18" opacity="0.45" filter="url(#btn-drop)"/>
     <rect id="btn-contact" x="17.5" y="140" width="106" height="19.6" rx="3" fill="#3d2a18" opacity="0.6" filter="url(#btn-contact)"/>
     <rect id="btn-side" x="17" y="139" width="107" height="20" rx="3" fill="url(#btn-side)" filter="url(#btn-side-grain)"/>
-    <rect id="btn-face" x="17" y="136" width="107" height="20" rx="3" fill="url(#btn-face)" filter="url(#btn-silicone)"/>
-    <rect id="btn-label" x="44" y="138.5" width="54" height="16" fill="url(#shuffle)"/>
+    <rect id="btn-face" class="bc-btn-top" x="17" y="136" width="107" height="20" rx="3" fill="url(#btn-face)" filter="url(#btn-silicone)"/>
+    <rect id="btn-label" class="bc-btn-top" x="44" y="138.5" width="54" height="16" fill="url(#shuffle)"/>
   </g>
 </svg>

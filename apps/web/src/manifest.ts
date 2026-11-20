@@ -16,6 +16,6 @@ export const manifest: PluginManifest = {
     { id: 'in', label: 'Control', kind: 'events', direction: 'in', accepts: ['automation', 'tempo', 'transport'] },
     { id: 'out', label: 'Notes', kind: 'events', direction: 'out', accepts: ['midi'] },
   ],
-  ui: { width: 560, height: 470, resizable: false },
+  ui: { width: 298, height: 169, resizable: false }, // DEVICE in ui/app.ts: Figma Frame 4 size
   features: ['state'],
 };

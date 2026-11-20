@@ -1,187 +1,151 @@
-.bc-skin {
-  --bc-bg: #16140e;
-  --bc-panel: #211e15;
-  --bc-line: #3a3524;
-  --bc-text: #f3eedc;
-  --bc-muted: #9d977f;
-  --bc-accent: #f5d23c;
-  --bc-accent-ink: #1d1a0c;
-  --bc-block: #2d2918;
-  --bc-block-alt: #343019;
+/* Banana Chords skin: the device (device/device.svg) with its screens. Every rule sits under .bc-root.
+   Sizes are Figma px (Frame 4, 298 x 169). Colours are Frame 4's. */
 
-  box-sizing: border-box;
-  width: 560px;
-  padding: 16px;
-  background: var(--bc-bg);
-  color: var(--bc-text);
-  font: 13px/1.3 system-ui, -apple-system, 'Segoe UI', sans-serif;
-  border-radius: 10px;
-  user-select: none;
-}
-.bc-skin *,
-.bc-skin *::before,
-.bc-skin *::after {
-  box-sizing: border-box;
+@font-face {
+  font-family: 'Banana Pixel';
+  /* 8-bit Operator+ 8, the Figma font. SIL OFL 1.1: assets/8bitOperatorPlus-OFL.txt */
+  src: url('./assets/8bitOperatorPlus8-Regular.ttf') format('truetype');
+  font-display: block;
 }
 
-.bc-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-.bc-title {
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  font-size: 15px;
-}
-.bc-logo {
-  color: var(--bc-accent);
-}
-.bc-logo2 {
-  margin-left: 6px;
-  color: var(--bc-text);
-}
-.bc-shuffle {
-  font: inherit;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 7px 16px;
-  border: 0;
-  border-radius: 6px;
-  background: var(--bc-accent);
-  color: var(--bc-accent-ink);
-  cursor: pointer;
-}
-.bc-shuffle:hover {
-  filter: brightness(1.08);
-}
-.bc-shuffle:active {
-  transform: translateY(1px);
-}
-.bc-shuffle:focus-visible,
-.bc-range:focus-visible,
-.bc-select:focus-visible {
-  outline: 2px solid var(--bc-accent);
-  outline-offset: 2px;
-}
-
-.bc-timeline {
+.bc-root {
+  --bc-face: #dcddd9;
+  --bc-shadow: #aeafab;
+  --bc-ink: #000;
+  --bc-thumb: #2f78db;
   position: relative;
-  height: 112px;
-  background: var(--bc-panel);
-  border: 1px solid var(--bc-line);
-  border-radius: 6px;
   overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  color: var(--bc-ink);
+  font-family: 'Banana Pixel', ui-monospace, monospace;
+  font-size: 12.5px; /* Figma: one font pixel = 1.0417 px */
+  line-height: 15px;
+  -webkit-font-smoothing: none;
 }
-.bc-blocks {
-  position: absolute;
-  inset: 0;
+
+.bc-root *,
+.bc-root *::before,
+.bc-root *::after {
+  box-sizing: border-box;
 }
-.bc-block {
+
+.bc-device {
   position: absolute;
+  left: 0;
   top: 0;
-  bottom: 0;
-  background: var(--bc-block);
-  border-right: 1px solid var(--bc-line);
+}
+
+.bc-root div,
+.bc-root button {
+  position: absolute;
+}
+
+.bc-root [hidden] {
+  display: none;
+}
+
+.bc-text {
+  white-space: nowrap;
+}
+.bc-center {
+  transform: translateX(-50%);
+}
+
+/* Buttons: #DCDDD9 face, 1 px #AEAFAB shadow down-right; pressed sits on the shadow */
+.bc-btn {
+  padding: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--bc-face);
+  box-shadow: 1px 1px 0 var(--bc-shadow);
+  color: var(--bc-ink);
+  font: inherit;
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 1;
+  cursor: pointer;
+  outline: none;
+}
+.bc-btn:active,
+.bc-btn[aria-expanded='true'] {
+  box-shadow: none;
+  transform: translate(1px, 1px);
+}
+.bc-btn:focus-visible,
+.bc-handle:focus-visible,
+.bc-shuffle:focus-visible {
+  outline: 1px dotted var(--bc-ink);
+  outline-offset: 1px;
+}
+.bc-arrow {
+  display: block;
+}
+
+/* SCALE field */
+.bc-field {
+  background: var(--bc-face);
   overflow: hidden;
-  transition: background-color 80ms linear;
-}
-.bc-block.bc-alt {
-  background: var(--bc-block-alt);
-}
-.bc-block.bc-active {
-  background: var(--bc-accent);
-  color: var(--bc-accent-ink);
-}
-.bc-notes {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-}
-.bc-note {
-  white-space: nowrap;
-}
-.bc-playhead {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 2px;
-  margin-left: -1px;
-  background: var(--bc-text);
-  pointer-events: none;
+  cursor: pointer;
 }
 
-.bc-ruler {
-  position: relative;
-  height: 16px;
-  margin-bottom: 12px;
+/* Sliders: 2 px black line, 4 x 8 handles */
+.bc-slider {
+  cursor: ew-resize;
+  touch-action: none;
 }
-.bc-tick {
-  position: absolute;
-  top: 0;
-  height: 16px;
-  border-left: 1px solid var(--bc-line);
-  padding-left: 3px;
-  font-size: 10px;
-  color: var(--bc-muted);
+.bc-track {
+  background: var(--bc-ink);
+}
+.bc-handle {
+  background: var(--bc-face);
+  box-shadow: 1px 1px 0 var(--bc-shadow);
+  outline: none;
 }
 
-.bc-groups {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+/* SCALE list (screen 2) */
+.bc-list {
+  z-index: 2;
+  background: var(--bc-face);
+  box-shadow: 1px 1px 0 var(--bc-shadow);
 }
-.bc-group {
-  background: var(--bc-panel);
-  border: 1px solid var(--bc-line);
-  border-radius: 6px;
-  padding: 10px 12px;
+.bc-list-rows {
+  overflow: hidden;
 }
-.bc-group-title {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--bc-muted);
-  margin-bottom: 6px;
+.bc-list-row {
+  overflow: hidden;
+  cursor: pointer;
 }
-.bc-row {
-  display: grid;
-  grid-template-columns: 96px 1fr 58px;
-  align-items: center;
-  gap: 8px;
-  min-height: 26px;
+.bc-list-row:hover {
+  text-decoration: underline;
 }
-.bc-row:has(.bc-select) {
-  grid-template-columns: 96px 1fr;
+.bc-scroll-line {
+  background: var(--bc-ink);
+  cursor: pointer;
 }
-.bc-label {
-  color: var(--bc-muted);
-  white-space: nowrap;
+.bc-thumb {
+  background: var(--bc-thumb);
+  box-shadow: 1px 1px 0 var(--bc-shadow);
+  cursor: grab;
+  touch-action: none;
 }
-.bc-value {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+
+/* SHUFFLE: a transparent button over the drawn pad; held = the pad's top sinks onto its side */
+.bc-shuffle {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
 }
-.bc-select {
-  font: inherit;
-  width: 100%;
-  padding: 3px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--bc-line);
-  background: var(--bc-bg);
-  color: var(--bc-text);
+.bc-device .bc-btn-top {
+  transition: transform 40ms;
 }
-.bc-range {
-  width: 100%;
-  accent-color: var(--bc-accent);
-  margin: 0;
+.bc-shuffle-down .bc-btn-top {
+  transform: translateY(2px);
+}
+.bc-shuffle-down .bc-btn-shadow {
+  opacity: 0.2;
 }
