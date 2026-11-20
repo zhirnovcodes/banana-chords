@@ -3,6 +3,7 @@
 #include <cmath>
 
 #include "ParamsJson.h"   // written by CMake from params.json
+#include "Scales.h"
 
 namespace bc {
 
@@ -50,9 +51,16 @@ void Engine::setParam(int index, double value) {
     if (old == value) return;
 
     switch (index) {
-    case kLoop:
+    // Chord Length Min <= Max, like the octaves: moving one past the other takes the other along.
     case kChordMin:
+        if (params_[kChordMax] < value) params_[kChordMax] = value;
+        reseed(kDirtyTimes | kDirtyDrift | kDirtyNotes | kDirtyChords | kDirtyOctaves);
+        break;
     case kChordMax:
+        if (params_[kChordMin] > value) params_[kChordMin] = value;
+        reseed(kDirtyTimes | kDirtyDrift | kDirtyNotes | kDirtyChords | kDirtyOctaves);
+        break;
+    case kLoop:
         reseed(kDirtyTimes | kDirtyDrift | kDirtyNotes | kDirtyChords | kDirtyOctaves);
         break;
     case kDrift:
@@ -136,6 +144,10 @@ HarmonyParams Engine::harmony() const {
 }
 
 // ---- view -------------------------------------------------------------------------------------
+
+int Engine::scaleMask() const {
+    return bc::scalePitchMask(intParam(kScale), intParam(kRoot));
+}
 
 int Engine::chordCount() {
     rebuild();

@@ -82,7 +82,7 @@ if(EMSCRIPTEN)
     set_target_properties(banana-chords PROPERTIES SUFFIX ".wasm")
     target_link_options(banana-chords PRIVATE
         -O2 --no-entry -sSTANDALONE_WASM -sALLOW_MEMORY_GROWTH -sFILESYSTEM=0
-        -sEXPORTED_FUNCTIONS=_bc_alloc,_bc_free,_bc_create,_bc_destroy,_bc_set_param,_bc_param,_bc_transport,_bc_midi,_bc_all_off,_bc_process,_bc_out_count,_bc_out_frame,_bc_out_kind,_bc_out_bytes,_bc_out_slot,_bc_out_value,_bc_seed,_bc_set_seed,_bc_chord_count,_bc_chord_start,_bc_chord_length,_bc_chord_notes,_bc_chord_note,_bc_current_chord
+        -sEXPORTED_FUNCTIONS=_bc_alloc,_bc_free,_bc_create,_bc_destroy,_bc_set_param,_bc_param,_bc_transport,_bc_midi,_bc_all_off,_bc_process,_bc_out_count,_bc_out_frame,_bc_out_kind,_bc_out_bytes,_bc_out_slot,_bc_out_value,_bc_seed,_bc_set_seed,_bc_chord_count,_bc_chord_start,_bc_chord_length,_bc_chord_notes,_bc_chord_note,_bc_current_chord,_bc_scale_mask
     )
     # Core tests run under Node in the wasm build too: node build-wasm/bc_tests.js
     set_target_properties(bc_tests PROPERTIES SUFFIX ".js")

@@ -127,6 +127,7 @@ const factory: PluginFactory = {
         return () => viewListeners.delete(cb);
       },
       playhead: () => driver.beatAt(ctx.currentTime),
+      scaleMask: () => core.bc_scale_mask(engine),
     };
 
     let unmountSkin: (() => void) | null = null;

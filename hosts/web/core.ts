@@ -21,6 +21,8 @@ export interface Core {
   bc_chord_notes(engine: number, chord: number): number;
   bc_chord_note(engine: number, k: number): number;
   bc_current_chord(engine: number): number;
+  /** Pitch classes of the selected scale on the selected root: bit k = pitch class k (0 = C). */
+  bc_scale_mask(engine: number): number;
 }
 
 /** Sequence seeds saved in state, in Engine's SeqSeed order. */

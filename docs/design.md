@@ -40,7 +40,8 @@ building it from that seed. State saves the five seeds, so a reloaded project pl
 ### 1 · times
 Pick lengths one by one, uniformly from the lengths in [min, max] that leave a remainder that can still be split into
 chords of min..max. Example: loop 8, min 1, max 3 → `1,2,1,3,1`. If the loop itself cannot be split (loop 5, chords 3..4)
-it becomes one chord of the whole loop. min > max is treated as swapped.
+it becomes one chord of the whole loop. Min ≤ Max always, as with the octaves: moving one past the other takes the other along
+(an older saved state with min > max still plays, read as swapped).
 
 ### 3 · time table and drift
 Chord borders live on a 1/4-beat grid ("quanta"). For the border between chord A and chord B, with `d = drift[i] × Drift Offset`:

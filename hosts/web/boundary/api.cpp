@@ -77,4 +77,6 @@ BC_EXPORT double bc_chord_length(Instance* i, int chord) { return i ? i->engine.
 // Resolves chord `chord`; read the notes with bc_chord_note(0..count-1).
 BC_EXPORT int bc_chord_notes(Instance* i, int chord) { return i ? i->engine.chordNotes(chord, i->notes) : 0; }
 BC_EXPORT int bc_chord_note(Instance* i, int k) { return i && k >= 0 && k < bc::kMaxNotes ? i->notes[k] : 0; }
+// Pitch classes of the selected scale on the selected root: bit k = pitch class k (0 = C). Piano dots.
+BC_EXPORT int bc_scale_mask(Instance* i) { return i ? i->engine.scaleMask() : 0; }
 BC_EXPORT int bc_current_chord(Instance* i) { return i ? i->engine.currentChord() : -1; }

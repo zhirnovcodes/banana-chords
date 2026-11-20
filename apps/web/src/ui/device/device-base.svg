@@ -1,0 +1,6 @@
+<svg width="298" height="169" viewBox="0 0 298 169" xmlns="http://www.w3.org/2000/svg">
+  <!-- Step 1: base shapes. Sizes, positions and colours from Figma Frame 1 (13:934). -->
+  <path id="body" d="M0 0H298V169H0Z" fill="#D8BC8E"/>
+  <rect id="screen-main" x="11" y="13" width="277" height="97" rx="9" fill="#86C2BE"/>
+  <rect id="screen-bottom" x="141" y="117" width="147" height="44" rx="4" fill="#86C2BE"/>
+</svg>

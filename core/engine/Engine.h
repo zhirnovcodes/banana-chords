@@ -88,6 +88,8 @@ public:
     double chordStart(int chord);      // beats, after drift
     double chordLength(int chord);     // beats, after drift
     int chordNotes(int chord, int out[kMaxNotes]);
+    // Pitch classes of the selected scale on the selected root: bit k = pitch class k (0 = C).
+    int scaleMask() const;
     int currentChord() const { return currentChord_; }   // -1 when nothing plays
 
 private:

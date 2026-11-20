@@ -242,6 +242,30 @@ void octaveMinNeverAboveMax() {
     CHECK_EQ(e.param(kDrift), 0.0);
 }
 
+void chordMinNeverAboveMax() {
+    Engine e(kRate, 1);
+    e.setParam(kChordMin, 2);
+    e.setParam(kChordMax, 4);
+    e.setParam(kChordMin, 8);    // pushes max up
+    CHECK_EQ(e.param(kChordMin), 8.0);
+    CHECK_EQ(e.param(kChordMax), 8.0);
+    e.setParam(kChordMax, 3);    // pushes min down
+    CHECK_EQ(e.param(kChordMin), 3.0);
+    CHECK_EQ(e.param(kChordMax), 3.0);
+}
+
+void scaleMaskFollowsRootAndScale() {
+    Engine e(kRate, 1);
+    e.setParam(kRoot, 0);
+    e.setParam(kScale, 0);       // C major: C D E F G A B
+    CHECK_EQ(e.scaleMask(), (1 << 0) | (1 << 2) | (1 << 4) | (1 << 5) | (1 << 7) | (1 << 9) | (1 << 11));
+    e.setParam(kRoot, 9);
+    e.setParam(kScale, 13);      // A minor pentatonic: A C D E G
+    CHECK_EQ(e.scaleMask(), (1 << 9) | (1 << 0) | (1 << 2) | (1 << 4) | (1 << 7));
+    e.setParam(kScale, 19);      // chromatic
+    CHECK_EQ(e.scaleMask(), 0xFFF);
+}
+
 void tempoChangeFollowsTheGrid() {
     Engine e(kRate, 21);
     OutBuffer out;
@@ -278,5 +302,7 @@ void engineTests() {
     regenerationFollowsDependencies();
     paramsClampAndRound();
     octaveMinNeverAboveMax();
+    chordMinNeverAboveMax();
+    scaleMaskFollowsRootAndScale();
     tempoChangeFollowsTheGrid();
 }
