@@ -1,5 +1,6 @@
 // Banana Chords for IvanDAW: the Web Plugin API v2 entry (default export: PluginFactory).
-// MIDI generator: the engine runs on the main thread, rendered LOOKAHEAD ahead by a ticker.
+// MIDI generator: the engine runs on the main thread, rendered LOOKAHEAD ahead by its own ticker,
+// or by the host through render(until) once the host calls it.
 
 import {
   createTicker,
@@ -19,6 +20,9 @@ import { createDriver } from './driver';
 import { INDEX, PARAMS, toNormalized, toPlain } from './params';
 
 /** Where the wasm is. The DAW build has it next to index.js; the dev page passes its own URL. */
+/** ivandaw-core v0.3.0 adds the optional `render?(until)` to PluginInstance; declared here until the pin moves. */
+type HostDrivenInstance = PluginInstance & { render(until: number): void };
+
 let wasmUrl = new URL(/* @vite-ignore */ './banana-chords.wasm', import.meta.url);
 export function setWasmUrl(url: URL) {
   wasmUrl = url;
@@ -143,7 +147,7 @@ const factory: PluginFactory = {
     );
 
     let disposed = false;
-    const instance: PluginInstance = {
+    const instance: HostDrivenInstance = {
       ports,
       latency: 0,
       tail: 0,
@@ -198,6 +202,9 @@ const factory: PluginFactory = {
       unmount() {
         unmountSkin?.();
         unmountSkin = null;
+      },
+      render: (until: number) => {
+        if (!disposed) driver.render(until);
       },
       suspend: () => driver.suspend(),
       resume: () => driver.resume(),
