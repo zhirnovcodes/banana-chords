@@ -6,6 +6,8 @@ int main() {
     sequencesTests();
     harmonyTests();
     engineTests();
+    chordsGeneratorTests();
+    chordsLoadTests();
     if (gFailures == 0) {
         std::printf("bc_tests: all passed\n");
         return 0;

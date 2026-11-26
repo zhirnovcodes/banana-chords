@@ -58,6 +58,7 @@ ${bc_param_rows}};
 add_library(bc_domain
     core/domain/Sequences.cpp
     core/domain/Harmony.cpp
+    core/domain/ChordsGenerator.cpp
 )
 target_include_directories(bc_domain PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/core/domain)
 bc_core_flags(bc_domain)
@@ -70,7 +71,7 @@ target_include_directories(bc_engine PUBLIC
 target_link_libraries(bc_engine PUBLIC bc_domain)
 bc_core_flags(bc_engine)
 
-add_executable(bc_tests tests/main.cpp tests/sequences_tests.cpp tests/harmony_tests.cpp tests/engine_tests.cpp)
+add_executable(bc_tests tests/main.cpp tests/sequences_tests.cpp tests/harmony_tests.cpp tests/engine_tests.cpp tests/chords_generator_tests.cpp tests/chords_load_tests.cpp)
 target_link_libraries(bc_tests PRIVATE bc_engine)
 bc_core_flags(bc_tests)
 
