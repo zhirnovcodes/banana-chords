@@ -1,4 +1,5 @@
-// Runs one engine on the main thread with a lookahead ticker and turns its output into PluginEvents.
+// Runs one engine on the main thread and turns its output into PluginEvents. It renders ahead on its own
+// lookahead ticker until the host calls render(until); from then on the host drives it and the ticker stays off.
 // The clock and the ticker are injected, so Vitest drives it with a fake clock.
 
 import type { PluginEvent, TransportState } from 'ivandaw-core';
@@ -26,6 +27,8 @@ export interface Driver {
   beatAt(time: number): number | null;
   /** Note-offs for everything sounding, at `time` or just after the last note-on of that pitch. */
   allOff(time: number): void;
+  /** Host-driven: render and emit everything before `until`. The first call stops the own ticker for good. */
+  render(until: number): void;
   suspend(): void;
   resume(): void;
   dispose(): void;
@@ -61,9 +64,12 @@ export function createDriver(d: DriverDeps): Driver {
     }
   };
 
-  const tick = () => {
+  let hostDriven = false;
+  let suspended = false;
+
+  /** Renders [rendered, until) and emits. */
+  const renderTo = (until: number) => {
     const now = d.now();
-    const until = now + d.lookahead;
     if (rendered < now) rendered = now; // after a stall: skip, never burst
     // Stopped: render nothing ahead, so a Play booked in the next LOOKAHEAD lands on its exact frame.
     if (!playing) {
@@ -86,6 +92,8 @@ export function createDriver(d: DriverDeps): Driver {
     emitOut(rendered);
     rendered = end;
   };
+
+  const tick = () => renderTo(d.now() + d.lookahead);
 
   const onTransport = (time: number, state: TransportState) => {
     anchor = { time, state };
@@ -110,6 +118,7 @@ export function createDriver(d: DriverDeps): Driver {
   };
 
   const start = () => {
+    if (hostDriven || suspended) return;
     if (ticker === null) {
       ticker = d.createTicker(d.tickMs, tick);
       tick();
@@ -139,13 +148,23 @@ export function createDriver(d: DriverDeps): Driver {
     allOff(time) {
       offNow(time);
     },
+    render(until) {
+      if (!hostDriven) {
+        hostDriven = true;
+        ticker?.stop();
+        ticker = null;
+      }
+      if (!suspended) renderTo(until);
+    },
     suspend() {
+      suspended = true;
       ticker?.stop();
       ticker = null;
       offNow(d.now());
     },
     resume() {
-      start();
+      suspended = false;
+      start(); // does nothing when host-driven
     },
     dispose() {
       ticker?.stop();

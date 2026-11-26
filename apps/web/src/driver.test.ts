@@ -47,6 +47,10 @@ function rig(seed = 1) {
         tick?.();
       }
     },
+    /** Move the clock without ticking. */
+    set now(t: number) {
+      now = t;
+    },
     get now() {
       return now;
     },
@@ -141,5 +145,89 @@ describe('driver', () => {
     r.driver.schedule([{ type: 'transport', time: 1, state: state(true, 4, 60) }]);
     expect(r.driver.beatAt(3)).toBeCloseTo(6, 9);
     r.driver.dispose();
+  });
+});
+
+describe('driver, host-driven render(until)', () => {
+  const ons = (events: Extract<PluginEvent, { type: 'midi' }>[]) => events.filter((e) => (e.bytes[0] & 0xf0) === 0x90 && e.bytes[2] > 0);
+
+  it('stops its own ticker after the first render', () => {
+    const r = rig(6);
+    expect(r.ticking).toBe(true);
+    r.driver.schedule([{ type: 'transport', time: 0.05, state: state(true, 0) }]);
+    r.driver.render(0.1);
+    expect(r.ticking).toBe(false);
+    const count = r.events.length;
+    r.run(2); // the fake ticker is gone: nothing more renders on its own
+    expect(r.events.length).toBe(count);
+    r.driver.dispose();
+  });
+
+  it('emits the beat-0 notes during the call, at t0', () => {
+    const r = rig(7);
+    r.now = 1;
+    const t0 = 1.02;
+    r.driver.schedule([{ type: 'transport', time: t0, state: state(true, 0) }]);
+    r.driver.render(t0 + 0.1);
+    const first = ons(r.events);
+    expect(first.length).toBeGreaterThan(0);
+    expect(Math.abs(first[0].time - t0)).toBeLessThanOrEqual(1 / RATE + 1e-9);
+    r.driver.dispose();
+    checkBalanced(r.events);
+  });
+
+  it('does nothing when until repeats', () => {
+    const r = rig(8);
+    r.driver.schedule([{ type: 'transport', time: 0, state: state(true, 0) }]);
+    let until = 0;
+    for (let i = 0; i < 40; i++) {
+      r.now += 0.025;
+      until = r.now + 0.1;
+      r.driver.render(until);
+    }
+    const count = r.events.length;
+    r.driver.render(until);
+    expect(r.events.length).toBe(count);
+    r.driver.dispose();
+    checkBalanced(r.events);
+  });
+
+  it('is silent while suspended and renders again after resume, without a ticker', () => {
+    const r = rig(9);
+    r.driver.schedule([{ type: 'transport', time: 0, state: state(true, 0) }]);
+    r.driver.render(0.1);
+    r.driver.suspend();
+    const count = r.events.length;
+    for (let i = 0; i < 20; i++) {
+      r.now += 0.025;
+      r.driver.render(r.now + 0.1);
+    }
+    expect(r.events.length).toBe(count);
+    r.driver.resume();
+    expect(r.ticking).toBe(false);
+    for (let i = 0; i < 40; i++) {
+      r.now += 0.025;
+      r.driver.render(r.now + 0.1);
+    }
+    expect(ons(r.events.slice(count)).length).toBeGreaterThan(0);
+    expect(r.ticking).toBe(false);
+    r.driver.dispose();
+    checkBalanced(r.events);
+  });
+
+  it('plays the same notes as the ticker path', () => {
+    const a = rig(10);
+    const b = rig(10);
+    a.driver.schedule([{ type: 'transport', time: 0.05, state: state(true, 0) }]);
+    b.driver.schedule([{ type: 'transport', time: 0.05, state: state(true, 0) }]);
+    a.run(4);
+    for (let i = 0; i < 160; i++) {
+      b.now += 0.025;
+      b.driver.render(b.now + 0.1);
+    }
+    const key = (e: Extract<PluginEvent, { type: 'midi' }>) => `${e.time.toFixed(6)} ${e.bytes.join(',')}`;
+    expect(b.events.map(key)).toEqual(a.events.map(key));
+    a.driver.dispose();
+    b.driver.dispose();
   });
 });
