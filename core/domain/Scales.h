@@ -35,13 +35,6 @@ inline constexpr Scale kScales[] = {
 
 inline constexpr int kScaleCount = static_cast<int>(sizeof(kScales) / sizeof(kScales[0]));
 
-// Semitones above the root of scale degree `degree`. Degrees below 0 or past the scale wrap to other octaves.
-inline int degreeToSemitones(const Scale& s, int degree) {
-    int octave = degree >= 0 ? degree / s.size : -((-degree + s.size - 1) / s.size);
-    int index = degree - octave * s.size;
-    return octave * 12 + s.steps[index];
-}
-
 // Pitch classes of `scale` on `root` (0 = C): bit k set = pitch class k is in the scale. For UIs (piano dots).
 inline int scalePitchMask(int scale, int root) {
     if (scale < 0 || scale >= kScaleCount) return 0;

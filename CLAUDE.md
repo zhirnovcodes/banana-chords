@@ -20,7 +20,7 @@ Reference implementation: zhirnovcodes/Beatality. Behaviour spec: [docs/design.m
 
 | Folder | Holds | Uses |
 | --- | --- | --- |
-| `core/domain/` | scales, sequences, harmony, RNG | C++20 std only; no exceptions, RTTI, I/O, allocation in `process` |
+| `core/domain/` | scales, sequences, `ChordsGenerator`, RNG | C++20 std only; no exceptions, RTTI, I/O, allocation in `process` |
 | `core/engine/` | `Engine`: params, transport, note output | core/domain |
 | `hosts/web/` | C ABI (`boundary/api.cpp`), wasm loader, lookahead driver, `PluginFactory` | core via C ABI, ivandaw-core |
 | `apps/web/` | Vite build of the IvanDAW plugin, dev page with sine synth, the skin in `src/ui/` | – |
@@ -48,7 +48,7 @@ pnpm --filter @banana-chords/web dev        # http://localhost:5190
 - `params.json` is append-only. Ids and indexes never change. `enum Param` in `Engine.h` follows it.
 - The same input gives the same output for any block size. Core tests check sizes 1, 64, 128, 512, 4096.
 - Every note-on gets a note-off (stop, CC 120/123, `setState`, suspend, dispose).
-- Random sequences come from per-sequence seeds; state saves the seeds.
+- Random sequences come from per-sequence seeds. State saves only plugin params; loading makes new sequences.
 - Web: musical timing uses `createTicker` / `LOOKAHEAD` from ivandaw-core, never `setTimeout` / `setInterval`.
 - The release contract (tag `daw-build-<n>`, asset `banana-chords-daw.zip`, `index.js` at zip root) never changes without a matching ivan-daw change.
 - You cannot hear. Every check says exactly what Ivan should listen for.

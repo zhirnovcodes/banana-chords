@@ -20,7 +20,8 @@ constexpr double kEps = 1e-7;
 Engine::Engine(double sampleRate, std::uint32_t seed)
     : sampleRate_(sampleRate > 0 ? sampleRate : 48000), master_(seed) {
     for (int i = 0; i < kParamCount; ++i) params_[i] = kParams[i].def;
-    reseed(kDirtyTimes | kDirtyDrift | kDirtyNotes | kDirtyChords | kDirtyOctaves);
+    reseed(kDirtyTimes | kDirtyDrift | kDirtyChords);
+    dirty_ |= kDirtyHarmony;
     rebuild();
 }
 
@@ -38,7 +39,7 @@ void Engine::setParam(int index, double value) {
     if (index == kShuffle) {
         // Trigger: fires once per rise past 0.5, reads back 0.
         bool high = value > 0.5;
-        if (high && !shuffleHigh_) reseed(kDirtyTimes | kDirtyDrift | kDirtyNotes | kDirtyChords | kDirtyOctaves);
+        if (high && !shuffleHigh_) reseed(kDirtyTimes | kDirtyDrift | kDirtyChords);
         shuffleHigh_ = high;
         return;
     }
@@ -54,14 +55,14 @@ void Engine::setParam(int index, double value) {
     // Chord Length Min <= Max, like the octaves: moving one past the other takes the other along.
     case kChordMin:
         if (params_[kChordMax] < value) params_[kChordMax] = value;
-        reseed(kDirtyTimes | kDirtyDrift | kDirtyNotes | kDirtyChords | kDirtyOctaves);
+        reseed(kDirtyTimes | kDirtyDrift | kDirtyChords);
         break;
     case kChordMax:
         if (params_[kChordMin] > value) params_[kChordMin] = value;
-        reseed(kDirtyTimes | kDirtyDrift | kDirtyNotes | kDirtyChords | kDirtyOctaves);
+        reseed(kDirtyTimes | kDirtyDrift | kDirtyChords);
         break;
     case kLoop:
-        reseed(kDirtyTimes | kDirtyDrift | kDirtyNotes | kDirtyChords | kDirtyOctaves);
+        reseed(kDirtyTimes | kDirtyDrift | kDirtyChords);
         break;
     case kDrift:
         dirty_ |= kDirtyTable;
@@ -69,24 +70,28 @@ void Engine::setParam(int index, double value) {
     // Min <= max: moving one past the other takes the other along.
     case kOctaveMin:
         if (params_[kOctaveMax] < value) params_[kOctaveMax] = value;
+        dirty_ |= kDirtyHarmony;
         break;
     case kOctaveMax:
         if (params_[kOctaveMin] > value) params_[kOctaveMin] = value;
+        dirty_ |= kDirtyHarmony;
         break;
+    // The chords are made again from the same seed: going back to a value brings the same chords back.
+    case kRoot:
+    case kScale:
+    case kDensity:
     case kNotesCount:
-        reseed(kDirtyChords | kDirtyOctaves);
+        dirty_ |= kDirtyHarmony;
         break;
     default:
-        break;   // root, scale, octaves, density: read when a chord is played
+        break;
     }
 }
 
 void Engine::reseed(unsigned mask) {
     if (mask & kDirtyTimes) seeds_[kSeedTimes] = master_.next32();
     if (mask & kDirtyDrift) seeds_[kSeedDrift] = master_.next32();
-    if (mask & kDirtyNotes) seeds_[kSeedNotes] = master_.next32();
     if (mask & kDirtyChords) seeds_[kSeedChords] = master_.next32();
-    if (mask & kDirtyOctaves) seeds_[kSeedOctaves] = master_.next32();
     dirty_ |= mask;
 }
 
@@ -95,7 +100,7 @@ std::uint32_t Engine::seed(int which) const {
 }
 
 void Engine::setSeed(int which, std::uint32_t value) {
-    static constexpr unsigned kBits[kSeedCount] = {kDirtyTimes, kDirtyDrift, kDirtyNotes, kDirtyChords, kDirtyOctaves};
+    static constexpr unsigned kBits[kSeedCount] = {kDirtyTimes, kDirtyDrift, kDirtyChords};
     if (which < 0 || which >= kSeedCount) return;
     seeds_[which] = value;
     dirty_ |= kBits[which];
@@ -104,10 +109,9 @@ void Engine::setSeed(int which, std::uint32_t value) {
 void Engine::rebuild() {
     if (dirty_ == 0) return;
     // Times sets the chord count, so everything built on it follows, each from its own seed.
-    if (dirty_ & kDirtyTimes) dirty_ |= kDirtyDrift | kDirtyNotes | kDirtyChords | kDirtyOctaves;
+    if (dirty_ & kDirtyTimes) dirty_ |= kDirtyDrift | kDirtyChords;
     if (dirty_ & kDirtyDrift) dirty_ |= kDirtyTable;
-
-    const int notesCount = intParam(kNotesCount);
+    if (dirty_ & kDirtyHarmony) dirty_ |= kDirtyChords;
     if (dirty_ & kDirtyTimes) {
         Rng r(seeds_[kSeedTimes]);
         generateTimes(r, intParam(kLoop), intParam(kChordMin), intParam(kChordMax), times_);
@@ -117,30 +121,29 @@ void Engine::rebuild() {
         generateDrift(r, times_.count, drift_);
     }
     if (dirty_ & kDirtyTable) buildTimeTable(times_, drift_, params_[kDrift], table_);
-    if (dirty_ & kDirtyNotes) {
-        Rng r(seeds_[kSeedNotes]);
-        generateNotes(r, times_.count, notes_);
-    }
+    if (dirty_ & kDirtyHarmony) generator_.initialize(chordsSettings());
     if (dirty_ & kDirtyChords) {
-        Rng r(seeds_[kSeedChords]);
-        generateChords(r, times_.count, notesCount, chords_);
-    }
-    if (dirty_ & kDirtyOctaves) {
-        Rng r(seeds_[kSeedOctaves]);
-        generateOctaves(r, times_.count, notesCount, octaves_);
+        // Steps 4-6: the loop's chords, each picked from the ones allowed after the previous one.
+        // The last chord of the loop stands on the tonic.
+        generator_.generate(seeds_[kSeedChords]);
+        for (int i = 0; i < times_.count; ++i) chords_[i] = generator_.getNext(i == times_.count - 1);
     }
     dirty_ = 0;
 }
 
-HarmonyParams Engine::harmony() const {
-    HarmonyParams h;
-    h.root = intParam(kRoot);
-    h.scale = intParam(kScale);
-    h.density = params_[kDensity];
-    h.notesCount = intParam(kNotesCount);
-    h.octaveMin = intParam(kOctaveMin);
-    h.octaveMax = intParam(kOctaveMax);
-    return h;
+ChordsSettings Engine::chordsSettings() const {
+    ChordsSettings s;
+    s.root = intParam(kRoot);
+    int scale = intParam(kScale);
+    if (scale < 0) scale = 0;
+    if (scale >= kScaleCount) scale = kScaleCount - 1;
+    s.scale = kScales[scale];
+    s.notesPerChord = intParam(kNotesCount);
+    s.density = params_[kDensity];
+    // Every note inside the octaves [min, max], as the Octave Min / Max sliders say.
+    s.lowNote = kOctaveZero + 12 * intParam(kOctaveMin);
+    s.highNote = kOctaveZero + 12 * intParam(kOctaveMax) + 11;
+    return s;
 }
 
 // ---- view -------------------------------------------------------------------------------------
@@ -169,7 +172,9 @@ double Engine::chordLength(int chord) {
 int Engine::chordNotes(int chord, int out[kMaxNotes]) {
     rebuild();
     if (chord < 0 || chord >= times_.count) return 0;
-    return resolveChord(notes_, chords_, octaves_, chord, harmony(), out);
+    const Chord& c = chords_[chord];
+    for (int i = 0; i < c.count; ++i) out[i] = c.notes[i];
+    return c.count;
 }
 
 // ---- time -------------------------------------------------------------------------------------
@@ -258,8 +263,9 @@ void Engine::renderSegment(int from, int to, OutBuffer& out) {
 void Engine::evaluate(int frame, long long quanta, OutBuffer& out) {
     rebuild();
     const int chord = chordAt(table_, quanta);
-    int notes[kMaxNotes];
-    const int n = resolveChord(notes_, chords_, octaves_, chord, harmony(), notes);
+    const Chord& c = chords_[chord];
+    const int* notes = c.notes;
+    const int n = c.count;
     bool wanted[128] = {};
     for (int i = 0; i < n; ++i) wanted[notes[i]] = true;
 

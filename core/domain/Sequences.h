@@ -29,28 +29,12 @@ struct TimeTable {
     int border[kMaxChords + 1] = {};     // chord i plays on [border[i], border[i+1]) quanta, after drift
 };
 
-// 4 · notes: one value in [0, 1) per chord, the main note's scale degree.
-struct Notes {
-    double value[kMaxChords] = {};
-};
-
-// 5 · chords: per chord, notes count - 1 values in [-1, 1): where each extra chord note goes.
-struct Chords {
-    double value[kMaxChords][kMaxNotes - 1] = {};
-};
-
-// 6 · octaves: per chord, notes count values in [-1, 1): octave transpose of each note.
-struct Octaves {
-    double value[kMaxChords][kMaxNotes] = {};
-};
+// 4-6 · chords: made by ChordsGenerator (ChordsGenerator.h), stored by the Engine.
 
 void generateTimes(Rng& rng, int loop, int minLen, int maxLen, Times& out);
 void generateDrift(Rng& rng, int chordCount, Drift& out);
 // amount in [-1, 1] scales every drift value (the Drift Offset parameter).
 void buildTimeTable(const Times& times, const Drift& drift, double amount, TimeTable& out);
-void generateNotes(Rng& rng, int chordCount, Notes& out);
-void generateChords(Rng& rng, int chordCount, int notesCount, Chords& out);
-void generateOctaves(Rng& rng, int chordCount, int notesCount, Octaves& out);
 
 // Chord index at a loop position in quanta (any integer; wraps by the loop).
 int chordAt(const TimeTable& table, long long quanta);

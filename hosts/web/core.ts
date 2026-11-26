@@ -13,8 +13,6 @@ export interface Core {
   bc_out_frame(engine: number, k: number): number;
   bc_out_kind(engine: number, k: number): number;
   bc_out_bytes(engine: number, k: number): number;
-  bc_seed(engine: number, which: number): number;
-  bc_set_seed(engine: number, which: number, value: number): void;
   bc_chord_count(engine: number): number;
   bc_chord_start(engine: number, chord: number): number;
   bc_chord_length(engine: number, chord: number): number;
@@ -24,9 +22,6 @@ export interface Core {
   /** Pitch classes of the selected scale on the selected root: bit k = pitch class k (0 = C). */
   bc_scale_mask(engine: number): number;
 }
-
-/** Sequence seeds saved in state, in Engine's SeqSeed order. */
-export const SEED_COUNT = 5;
 
 // STANDALONE_WASM imports only this one function (checked with WebAssembly.Module.imports).
 const imports = { env: { emscripten_notify_memory_growth() {} } };
