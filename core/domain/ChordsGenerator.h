@@ -8,13 +8,12 @@
 namespace bc {
 
 // Chord generator with WFC-style adjacency rules: each chord is picked from the chords allowed after
-// the previous one. Spec: docs/chords-generator.md. Not wired into the Engine yet.
+// the previous one. Spec: docs/chords-generator.md. The Engine makes the loop's chords with it (steps 4-6).
 //
 // Works in scale-degree space, so any scale works (modes, pentatonics, whole-tone, user scales).
 // No functional-harmony rules: every rule is stated in scale steps, semitones and pitch classes.
 //
-// Never allocates. initialize() enumerates voicings (up to ~10 ms for 6-note chromatic chords):
-// keep it off the audio thread. generate() and getNext() are a few µs: safe on the audio thread.
+// Never allocates, and every call is cheap enough for the audio thread (see tests/chords_load_tests.cpp).
 //
 //   gen.initialize(settings);                  // when scale / root / range / notes / density change
 //   gen.generate(seed);                        // start a new chord set
@@ -23,6 +22,10 @@ namespace bc {
 // Candidate pool cap. More voicings than this are sampled down (fixed seed, so the pool depends
 // only on the settings).
 inline constexpr int kMaxChordCandidates = 256;
+// Voicings are listed in full while that takes at most this many steps; bigger sets are sampled.
+inline constexpr long long kEnumerateBudget = 3000;
+// Sampling attempts per initialize, when the grid is too big to list.
+inline constexpr int kSampleTries = kMaxChordCandidates * 32;
 
 // Every tunable number of the rules. Defaults follow the spec; tune per genre later.
 struct ChordRules {
@@ -45,19 +48,18 @@ struct ChordRules {
 };
 
 // Allowed gap range in scale steps. All gap math lives here so the units can be swapped.
-// `widen` grows the range by that many steps on both sides.
 struct GapRange {
     int min;
     int max;
 };
-GapRange chordGapRange(double density, int scaleSize, const ChordRules& rules, int widen = 0);
+GapRange chordGapRange(double density, int scaleSize, const ChordRules& rules);
 
 struct ChordsSettings {
     int root = 0;                 // pitch class of the tonic, 0 = C
     Scale scale = kScales[0];     // any scale: size 2..12, steps ascending from 0
     int lowNote = 48;             // MIDI range, both inclusive
     int highNote = 84;
-    int notesPerChord = 3;        // 2..kMaxNotes
+    int notesPerChord = 3;        // 1..kMaxNotes (most notes; fewer when they do not fit, see initialize)
     double density = 0.66;        // 0 = open voicings, 1 = clusters allowed
     double randomness = 1.0;      // temperature of the transition weights
     ChordRules rules;
@@ -70,10 +72,18 @@ struct Chord {
 
 class ChordsGenerator {
 public:
-    // Builds the candidate voicings. False when the settings are invalid or no chord fits the range
-    // (then getNext() returns empty chords). When nothing fits the density, the gap range is widened
-    // by one step and the span limit dropped.
+    // Builds the candidate voicings. The range and density always hold: when notesPerChord notes do not
+    // fit them (e.g. open voicings in one octave), chords get one note fewer, down to 1.
+    // False when the settings are invalid or no scale note is in the range (then getNext() returns
+    // empty chords).
     bool initialize(const ChordsSettings& settings);
+
+    // Notes per chord after initialize: settings.notesPerChord, or fewer when they did not fit.
+    int notesPerChord() const { return poolCount_ > 0 ? pool_[0].count : 0; }
+
+    // Work of the last initialize() or getNext() call, in steps: voicing nodes listed, sampling tries and
+    // gap checks, candidates visited. Machine-independent, so tests can bound the cost without a clock.
+    long long lastWork() const { return work_; }
 
     // Starts a new chord sequence: the next getNext() picks a first chord with no predecessor.
     void generate(std::uint64_t seed);
@@ -92,7 +102,10 @@ private:
     };
 
     struct Enumeration;
-    void enumerate(Enumeration& e, int depth, int k);
+    void enumerate(Enumeration& e, int depth, int k, int mask);
+    void sample(Enumeration& e, int lowIndex, int rootCount);
+    bool makeCandidate(const Enumeration& e, Candidate& c) const;
+    bool addUnique(const Candidate& c);   // false when the pool already holds it
     int pick(const bool* eligible);
     double score(const Candidate& a, const Candidate& b) const;
 
@@ -100,6 +113,10 @@ private:
     Candidate pool_[kMaxChordCandidates];
     int poolCount_ = 0;
     long long seen_ = 0;               // voicings offered to the pool sampler
+    long long steps_ = 0;              // enumeration steps, against kEnumerateBudget
+    long long work_ = 0;               // see lastWork()
+    static constexpr int kHashSlots = kMaxChordCandidates * 2;
+    std::int16_t hash_[kHashSlots] = {};   // pool index + 1, 0 = empty (open addressing)
     Rng rng_{1};
     Rng poolRng_{1};
     Candidate previous_;

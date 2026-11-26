@@ -24,7 +24,6 @@ extern int gFailures;
     } while (0)
 
 void sequencesTests();
-void harmonyTests();
 void engineTests();
 void chordsGeneratorTests();
 void chordsLoadTests();

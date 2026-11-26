@@ -14,7 +14,7 @@ import {
 } from 'ivandaw-core';
 import { ID, manifest, VERSION } from '../../apps/web/src/manifest';
 import { mountSkin, type SkinBridge, type SequenceView } from '../../apps/web/src/ui/skin';
-import { type Core, loadCore, SEED_COUNT } from './core';
+import { type Core, loadCore } from './core';
 import { createDriver } from './driver';
 import { INDEX, PARAMS, toNormalized, toPlain } from './params';
 
@@ -24,10 +24,11 @@ export function setWasmUrl(url: URL) {
   wasmUrl = url;
 }
 
+// Only the parameters: sequences are not saved, a loaded plugin makes new ones.
+// (States saved before this change also hold `seeds`; they are ignored.)
 interface SavedState {
   v: 1;
   params: Record<string, number>; // plain values by id
-  seeds: number[]; // uint32, Engine SeqSeed order
 }
 
 function view(core: Core, engine: number): SequenceView {
@@ -174,7 +175,6 @@ const factory: PluginFactory = {
         const data: SavedState = {
           v: 1,
           params: Object.fromEntries(PARAMS.filter((p) => p.kind !== 'trigger').map((p) => [p.id, plain(p.id)])),
-          seeds: Array.from({ length: SEED_COUNT }, (_, i) => core.bc_seed(engine, i) >>> 0),
         };
         return { pluginId: ID, pluginVersion: VERSION, data };
       },
@@ -187,11 +187,10 @@ const factory: PluginFactory = {
           const v = typeof saved[p.id] === 'number' ? saved[p.id] : p.default;
           core.bc_set_param(engine, index, v);
         });
-        if (Array.isArray(data.seeds)) {
-          data.seeds.slice(0, SEED_COUNT).forEach((seed, i) => {
-            if (typeof seed === 'number') core.bc_set_seed(engine, i, seed | 0);
-          });
-        }
+        // New sequences for the loaded parameters (a Shuffle press).
+        const shuffle = PARAMS.findIndex((p) => p.id === 'shuffle');
+        core.bc_set_param(engine, shuffle, 1);
+        core.bc_set_param(engine, shuffle, 0);
         for (const p of PARAMS) notifyParam({ id: p.id, value: normalized(p.id), source: 'host' });
         viewChanged();
       },

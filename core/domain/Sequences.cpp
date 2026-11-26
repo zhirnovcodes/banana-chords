@@ -98,26 +98,6 @@ void buildTimeTable(const Times& times, const Drift& drift, double amount, TimeT
     }
 }
 
-void generateNotes(Rng& rng, int chordCount, Notes& out) {
-    for (int i = 0; i < kMaxChords; ++i) out.value[i] = i < chordCount ? rng.unit() : 0;
-}
-
-void generateChords(Rng& rng, int chordCount, int notesCount, Chords& out) {
-    for (int i = 0; i < kMaxChords; ++i) {
-        for (int k = 0; k < kMaxNotes - 1; ++k) {
-            out.value[i][k] = (i < chordCount && k < notesCount - 1) ? rng.signedUnit() : 0;
-        }
-    }
-}
-
-void generateOctaves(Rng& rng, int chordCount, int notesCount, Octaves& out) {
-    for (int i = 0; i < kMaxChords; ++i) {
-        for (int k = 0; k < kMaxNotes; ++k) {
-            out.value[i][k] = (i < chordCount && k < notesCount) ? rng.signedUnit() : 0;
-        }
-    }
-}
-
 int chordAt(const TimeTable& table, long long quanta) {
     if (table.cellCount <= 0) return 0;
     const long long total = static_cast<long long>(table.cellCount) * table.cellQuanta;

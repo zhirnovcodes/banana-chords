@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-#include "Harmony.h"
+#include "ChordsGenerator.h"
 #include "Rng.h"
 #include "Sequences.h"
 
@@ -25,9 +25,13 @@ enum Param : int {
     kParamCount
 };
 
-// The random sequences. Each has its own seed, so a saved state replays exactly.
+// MIDI note of C in octave 0. Octave numbers match note names in the C3 = 60 naming IvanDAW and
+// Ableton use: octave n holds C<n>..B<n>, so octave 0 = MIDI 24..35, octave 6 = MIDI 96..107.
+inline constexpr int kOctaveZero = 24;
+
+// The random sequences, each from its own seed. Seeds are not saved: a loaded plugin makes new ones.
 // The time table (step 3) is built from times + drift and has no seed.
-enum SeqSeed : int { kSeedTimes = 0, kSeedDrift, kSeedNotes, kSeedChords, kSeedOctaves, kSeedCount };
+enum SeqSeed : int { kSeedTimes = 0, kSeedDrift, kSeedChords, kSeedCount };
 
 struct Transport {
     bool playing = false;
@@ -79,7 +83,7 @@ public:
     // Note-offs for every sounding note at `frame`, queued events dropped.
     void allOff(int frame, OutBuffer& out);
 
-    // Sequence seeds, for state. setSeed rebuilds that sequence (and the ones built from it) from the seed.
+    // Sequence seeds (tests). setSeed rebuilds that sequence (and the ones built from it) from the seed.
     std::uint32_t seed(int which) const;
     void setSeed(int which, std::uint32_t value);
 
@@ -93,8 +97,10 @@ public:
     int currentChord() const { return currentChord_; }   // -1 when nothing plays
 
 private:
-    enum Dirty : unsigned { kDirtyTimes = 1, kDirtyDrift = 2, kDirtyTable = 4, kDirtyNotes = 8,
-                            kDirtyChords = 16, kDirtyOctaves = 32 };
+    // kDirtyHarmony: root / scale / range / notes / density changed, the generator re-initializes.
+    // kDirtyChords: the loop's chords are made again from the chords seed.
+    enum Dirty : unsigned { kDirtyTimes = 1, kDirtyDrift = 2, kDirtyTable = 4, kDirtyHarmony = 8,
+                            kDirtyChords = 16 };
 
     struct Pending {
         int frame;
@@ -106,7 +112,7 @@ private:
 
     void reseed(unsigned dirtyMask);
     void rebuild();
-    HarmonyParams harmony() const;
+    ChordsSettings chordsSettings() const;
     int intParam(int index) const;
 
     double beatAtAbs(long long absFrame) const;
@@ -125,9 +131,8 @@ private:
     Times times_;
     Drift drift_;
     TimeTable table_;
-    Notes notes_;
-    Chords chords_;
-    Octaves octaves_;
+    ChordsGenerator generator_;
+    Chord chords_[kMaxChords];   // the loop's chords, in time order; replayed every loop pass
 
     // Transport: beat at absolute frame f = anchorBeat_ + (f - anchorFrame_) * bpm / (60 * rate).
     // Absolute frames make the timing identical for every block size.

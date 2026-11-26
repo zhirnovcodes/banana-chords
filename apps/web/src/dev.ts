@@ -162,7 +162,7 @@ saveBtn.onclick = async () => {
   const state = await plugin.getState();
   log(`getState: ${JSON.stringify(state.data)}`);
   await plugin.setState(JSON.parse(JSON.stringify(state)));
-  log('setState done: the timeline and sound should not change');
+  log('setState done: same parameters, new chords (sequences are not saved)');
 };
 window.addEventListener('keydown', (e) => {
   if (e.code !== 'Space' || !plugin || (e.target as HTMLElement)?.tagName === 'INPUT') return;

@@ -1,25 +1,28 @@
-# ChordsGenerator · WFC chord progressions (not wired yet)
+# ChordsGenerator · WFC chord progressions
 
 Code: [core/domain/ChordsGenerator.h](../core/domain/ChordsGenerator.h). Tests: [tests/chords_generator_tests.cpp](../tests/chords_generator_tests.cpp).
-The class stands alone. The Engine still plays chords from the sequences in [design.md](design.md).
+The Engine plays its chords (steps 4–6 in [design.md](design.md)).
 
 ## Implementation notes
 
 API: `initialize(settings)` → `generate(seed)` → `getNext(last)` once per chord. Output is chords only
-(MIDI notes, ascending). The Engine stores the loop's chords and saves only the seed.
+(MIDI notes, ascending). The Engine calls all three in `rebuild()` and stores the loop's chords.
 
 Differences from the spec below:
 
 - One chord at a time: each pick weighs the candidates after the previous chord (§5), no look-ahead
   (§6's solver is not used). `getNext(true)` stands on the tonic (or contains it, if no voicing stands on it).
   When no candidate passes `hardThreshold` after the previous chord, the threshold is dropped for that pick.
-- No pins, no melody, no chord names, no failure report: `initialize` returns false when nothing fits.
-- Candidate pool cap `kMaxChordCandidates` (256), reservoir-sampled with a fixed seed, so the pool
-  depends only on the settings. When nothing fits the density, gaps widen by 1 step and the 2-octave
-  span limit is dropped (5–6 open-voiced notes need that).
+- 1..6 notes. The range and density always hold; when the notes do not fit, chords get fewer notes
+  (`notesPerChord()` says how many). No gap widening.
+- No pins, no melody, no chord names, no failure report: `initialize` returns false when no scale note is in range.
+- Candidate pool cap `kMaxChordCandidates` (256), fixed seed, so the pool depends only on the settings.
+  Voicings are listed in full while that takes ≤ `kEnumerateBudget` steps (reservoir-sampled down to 256);
+  bigger sets are sampled note by note (only gaps that keep the pitch class new and leave room for the
+  notes above), duplicates skipped through a small hash table.
 - All weights and gap constants live in `ChordRules`; gap math only in `chordGapRange()`.
-- Never allocates, 12.5 KB object. Timing (wasm under Node): `getNext` ≈ 5 µs (audio thread OK);
-  `initialize` 0.02 ms (3 notes) to 8.6 ms (6-note chromatic, density 1): keep it off the audio thread.
+- Never allocates, ~13 KB object. Everything runs on the audio thread; `tests/chords_load_tests.cpp`
+  checks a new 32-chord set every block and a settings change (initialize + set) against a 128-sample block.
 
 ---
 

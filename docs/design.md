@@ -9,33 +9,33 @@ This file is the spec as built: every rule here is in `core/`, with the test tha
 
 | # | id | Label | Kind | Range | Default | Automatable | Regenerates |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0 | `root` | Note | choice | C..B | C | no | – |
-| 1 | `scale` | Scale | choice | 20 scales (below) | Major | no | – |
+| 0 | `root` | Note | choice | C..B | C | no | 4–6 (same seed) |
+| 1 | `scale` | Scale | choice | 20 scales (below) | Major | no | 4–6 (same seed) |
 | 2 | `loop` | Loop | int | 1..32 beats | 8 | no | all |
 | 3 | `chordMin` | Chord Length Min | int | 1..32 beats | 1 | yes | all |
 | 4 | `chordMax` | Chord Length Max | int | 1..32 beats | 3 | yes | all |
-| 5 | `octaveMin` | Octave Min | int | 0..6, ≤ Octave Max | 2 | yes | – |
-| 6 | `octaveMax` | Octave Max | int | 0..6, ≥ Octave Min | 3 | yes | – |
+| 5 | `octaveMin` | Octave Min | int | 0..6, ≤ Octave Max | 2 | yes | 4–6 (same seed) |
+| 6 | `octaveMax` | Octave Max | int | 0..6, ≥ Octave Min | 3 | yes | 4–6 (same seed) |
 | 7 | `shuffle` | Shuffle | trigger | | | yes | all |
 | 8 | `drift` | Drift Offset | float | 0..1 | 0 | no | 3 (time table) |
-| 9 | `density` | Scale Density | float | 0..1 | 0.8 | yes | – |
-| 10 | `notesCount` | Notes Count | int | 1..6 | 3 | yes | 5, 6 |
+| 9 | `density` | Scale Density | float | 0..1 | 0.8 | yes | 4–6 (same seed) |
+| 10 | `notesCount` | Notes Count | int | 1..6 | 3 | yes | 4–6 (same seed) |
 
 "Regenerates" fires only when the value really changes (an int param dragged across the same value does nothing).
+"Same seed": the chords are made again from the seed they already had, so going back to a value brings the same chords back.
 
 ## Sequences
 
 Each random sequence has its own seed. Regenerating a sequence = a new seed from the engine's master RNG, then
-building it from that seed. State saves the five seeds, so a reloaded project plays exactly the same chords.
+building it from that seed. **Seeds are not saved**: state holds only the parameters, and loading a project makes
+new sequences (as if Shuffle was pressed after the parameters were set).
 
 | # | Sequence | Size | Values | Depends on |
 | --- | --- | --- | --- | --- |
 | 1 | times | chord count | whole beats in [min, max], sum = loop | loop, chordMin, chordMax |
 | 2 | drift | chord count − 1 | [-1, 1) | 1 |
 | 3 | time table | loop / cell | chord index per cell | 1, 2, Drift Offset (built, no seed) |
-| 4 | notes | chord count | [0, 1) | 1 |
-| 5 | chords | chord count × (notes − 1) | [-1, 1) | 1, notesCount |
-| 6 | octaves | chord count × notes | [-1, 1) | 1, notesCount |
+| 4–6 | chords | chord count | MIDI notes per chord | 1, Note, Scale, Octave Min/Max, Density, Notes Count |
 
 ### 1 · times
 Pick lengths one by one, uniformly from the lengths in [min, max] that leave a remainder that can still be split into
@@ -54,20 +54,24 @@ Drift Offset scales every drift value: **0 = straight grid** (default), 1 = the 
 The cell size is the largest grid that holds every border (gcd of the borders), so the table has `loop / cell` cells.
 Reading: `cell = floor((beat mod loop) / cell size)` → chord index.
 
-### Chord notes (steps 4–6 at play time)
-Read whenever a chord is evaluated, so Note, Scale, Density, Octave Min/Max apply without regenerating anything.
+### Chords (steps 4–6)
+Made by `ChordsGenerator` (spec and rules: [chords-generator.md](chords-generator.md)) whenever the chords are dirty,
+and stored: every pass of the loop plays the same chords until Shuffle, Loop, Chord Length or a harmony
+parameter changes. All of it runs on the audio thread (cost: see `tests/chords_load_tests.cpp`).
 
-1. **Main note**: `degree = floor(notes[i] × scale size)`.
-2. **Other notes** (`notesCount − 1`): each value's sign picks the side, its size the distance.
-   `v ≥ 0` stacks above the highest note so far, `v < 0` below the lowest. Step = `1 + gap` scale degrees,
-   `gap = 1 + floor(|v| × maxGap)`, with `maxGap = 1 + round((1 − density) × 5)`:
-   density 1 → gap 1 (stacked thirds), density 0 → gaps up to 6 notes.
-   Steps 1–2 decide the chord's **pitch classes** (which notes of the scale).
-3. **Octave**: Octave Min/Max say where the notes are. Each note (main and others) is placed in
-   `octave = octaveMin + bucket(octaves[i][k])`, uniform buckets over [octaveMin, octaveMax], so every note lies in
-   C<min>..B<max>. Octave numbers match the note names (C3 = 60, as IvanDAW names notes): octave 0 = MIDI 24..35,
-   octave 6 = MIDI 96..107. Min ≤ Max always: moving one past the other takes the other along.
-4. **Duplicates become one note** (two notes with the same pitch class in the same octave).
+1. **Candidates** (on Note, Scale, Octave, Density, Notes Count): every voicing whose notes are in the scale,
+   inside octaves C<min>..B<max>, with gaps between neighbouring notes in the Density range
+   (density 1 → neighbouring scale notes allowed, 0 → 4..6 scale steps apart in a 7-note scale), span ≤ 2 octaves,
+   no pitch class twice. At most 256, sampled with a fixed seed.
+   **The range and density always hold**: when Notes Count notes do not fit (open voicings in one octave),
+   chords get fewer notes, down to 1. Notes Count 1 plays single notes.
+2. **Chords**: from the chords seed, one chord after another. Each is picked at random among the candidates
+   allowed after the previous chord, weighted by root motion, common tones and smooth voice leading;
+   the same pitch-class set twice in a row is not allowed (unless nothing else is).
+3. **The last chord of the loop stands on the tonic** (its lowest note is the Note), or holds it if no voicing can.
+
+Octave numbers match the note names (C3 = 60, as IvanDAW names notes): octave 0 = MIDI 24..35,
+octave 6 = MIDI 96..107. Min ≤ Max always: moving one past the other takes the other along.
 
 ### Playing
 - Chords are evaluated on every 1/4 beat while playing, and at once on Play, a jump or a tempo change.
@@ -108,4 +112,6 @@ so a full list is not useful in a selector. More can be appended to the table an
 | Notes Count "slider 0–1" | int 1..6 | Sequences 5 and 6 are sized by it. Automation still sends 0..1 normalized. |
 | Drift Offset "adds offset", -1..1 | scales the drift (multiplier), 0..1 | With an additive offset there is no way back to a straight grid. |
 | Note checked "each frame" | each 1/4 beat | The quick-change protection above; also keeps output identical for any block size. |
+| Changing Density / Scale / … reshapes the same chords | makes the chords again (same seed) | The chords are concrete voicings now, picked by adjacency rules. |
+| State replays the same chords | state holds parameters only; loading makes new chords | Asked for: sequences are not saved. |
 | Octave range -1..1 transpose, 0 = C1 | absolute octaves 0..6 that hold every note | Changed on request. |

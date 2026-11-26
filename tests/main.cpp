@@ -4,7 +4,6 @@ int gFailures = 0;
 
 int main() {
     sequencesTests();
-    harmonyTests();
     engineTests();
     chordsGeneratorTests();
     chordsLoadTests();

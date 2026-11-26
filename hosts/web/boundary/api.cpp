@@ -68,9 +68,7 @@ BC_EXPORT int bc_out_bytes(Instance* i, int k) {
 BC_EXPORT int bc_out_slot(Instance* i, int k) { return i ? i->out[k].slot : 0; }
 BC_EXPORT float bc_out_value(Instance* i, int k) { return i ? i->out[k].value : 0; }
 
-// State and UI view.
-BC_EXPORT unsigned bc_seed(Instance* i, int which) { return i ? i->engine.seed(which) : 0; }
-BC_EXPORT void bc_set_seed(Instance* i, int which, unsigned value) { if (i) i->engine.setSeed(which, value); }
+// UI view.
 BC_EXPORT int bc_chord_count(Instance* i) { return i ? i->engine.chordCount() : 0; }
 BC_EXPORT double bc_chord_start(Instance* i, int chord) { return i ? i->engine.chordStart(chord) : 0; }
 BC_EXPORT double bc_chord_length(Instance* i, int chord) { return i ? i->engine.chordLength(chord) : 0; }

@@ -4,6 +4,7 @@
 
 #include "Check.h"
 #include "Engine.h"
+#include "Scales.h"
 
 using namespace bc;
 
@@ -171,34 +172,42 @@ void seedsReplay() {
     }
 }
 
+// The loop's chords, read through the view.
+std::vector<std::vector<int>> chordsOf(Engine& e) {
+    std::vector<std::vector<int>> out;
+    for (int i = 0; i < e.chordCount(); ++i) {
+        int notes[kMaxNotes];
+        const int n = e.chordNotes(i, notes);
+        out.emplace_back(notes, notes + n);
+    }
+    return out;
+}
+
 void regenerationFollowsDependencies() {
     Engine e(kRate, 5);
     std::uint32_t before[kSeedCount];
     for (int s = 0; s < kSeedCount; ++s) before[s] = e.seed(s);
+    const std::vector<std::vector<int>> chords = chordsOf(e);
 
-    // Root, scale, density, octaves: no sequence changes.
+    // Root, scale, density, octaves, notes count: new chords from the same seeds.
     e.setParam(kRoot, 5);
     e.setParam(kScale, 3);
     e.setParam(kDensity, 0.1);
     e.setParam(kOctaveMin, 1);
+    e.setParam(kNotesCount, 5);
     e.setParam(kDrift, 0.5);
     for (int s = 0; s < kSeedCount; ++s) CHECK_EQ(e.seed(s), before[s]);
+    CHECK(chordsOf(e) != chords);
 
-    // Notes count: chords and octaves only.
-    e.setParam(kNotesCount, 5);
-    CHECK_EQ(e.seed(kSeedTimes), before[kSeedTimes]);
-    CHECK_EQ(e.seed(kSeedDrift), before[kSeedDrift]);
-    CHECK_EQ(e.seed(kSeedNotes), before[kSeedNotes]);
-    CHECK(e.seed(kSeedChords) != before[kSeedChords]);
-    CHECK(e.seed(kSeedOctaves) != before[kSeedOctaves]);
-
-    // The same value again changes nothing.
-    std::uint32_t chords = e.seed(kSeedChords);
-    e.setParam(kNotesCount, 5);
-    CHECK_EQ(e.seed(kSeedChords), chords);
+    // Back to the old values: the same chords again.
+    e.setParam(kRoot, 0);
+    e.setParam(kScale, 0);
+    e.setParam(kDensity, 0.8);
+    e.setParam(kOctaveMin, 2);
+    e.setParam(kNotesCount, 3);
+    CHECK(chordsOf(e) == chords);
 
     // Loop: everything.
-    for (int s = 0; s < kSeedCount; ++s) before[s] = e.seed(s);
     e.setParam(kLoop, 16);
     for (int s = 0; s < kSeedCount; ++s) CHECK(e.seed(s) != before[s]);
 
@@ -209,7 +218,71 @@ void regenerationFollowsDependencies() {
     e.setParam(kShuffle, 1);
     CHECK(afterFirst != before[kSeedTimes]);
     CHECK_EQ(e.seed(kSeedTimes), afterFirst);
+    CHECK(e.seed(kSeedChords) != before[kSeedChords]);
     CHECK_EQ(e.param(kShuffle), 0.0);
+}
+
+// Chords follow Note, Scale, Octave Min/Max and Notes Count; the loop's last chord stands on the tonic.
+void chordsFollowSettings() {
+    for (std::uint32_t seed = 1; seed <= 20; ++seed) {
+        Engine e(kRate, seed);
+        const int root = static_cast<int>(seed % 12);
+        const int scale = static_cast<int>(seed % kScaleCount);
+        const int octaveMin = static_cast<int>(seed % 4);
+        const int notes = 1 + static_cast<int>(seed % kMaxNotes);
+        e.setParam(kRoot, root);
+        e.setParam(kScale, scale);
+        e.setParam(kOctaveMax, octaveMin + 2);
+        e.setParam(kOctaveMin, octaveMin);
+        e.setParam(kNotesCount, notes);
+        e.setParam(kDensity, (seed % 5) / 4.0);
+        const int mask = scalePitchMask(scale, root);
+        const int count = e.chordCount();
+        CHECK(count >= 1);
+        for (int i = 0; i < count; ++i) {
+            int out[kMaxNotes];
+            const int n = e.chordNotes(i, out);
+            CHECK(n >= 1 && n <= notes);
+            for (int k = 0; k < n; ++k) {
+                CHECK(out[k] >= kOctaveZero + 12 * octaveMin);
+                CHECK(out[k] < kOctaveZero + 12 * (octaveMin + 3));
+                CHECK(mask & (1 << (out[k] % 12)));
+                if (k > 0) CHECK(out[k] > out[k - 1]);
+            }
+        }
+        int last[kMaxNotes];
+        e.chordNotes(count - 1, last);
+        CHECK_EQ(last[0] % 12, root);
+    }
+}
+
+// One octave and open voicings: 3 notes do not fit, so chords have 2, all inside that octave.
+void oneOctaveFewerNotes() {
+    Engine e(kRate, 4);
+    e.setParam(kOctaveMin, 3);
+    e.setParam(kOctaveMax, 3);
+    e.setParam(kDensity, 0);
+    e.setParam(kNotesCount, 3);
+    for (int i = 0; i < e.chordCount(); ++i) {
+        int out[kMaxNotes];
+        CHECK_EQ(e.chordNotes(i, out), 2);
+        CHECK(out[0] >= kOctaveZero + 36 && out[1] <= kOctaveZero + 47);
+    }
+}
+
+// Every pass of the loop plays the same chords.
+void loopReplaysTheSameChords() {
+    Engine e(kRate, 13);
+    e.setParam(kLoop, 8);                          // 8 beats = 4 s at 120 BPM
+    const long long loopFrames = static_cast<long long>(kRate * 4);
+    std::vector<Ev> events = render(e, loopFrames * 3, 512);
+    std::vector<Ev> second, third;
+    for (const Ev& ev : events) {
+        if (ev.frame >= loopFrames && ev.frame < 2 * loopFrames) second.push_back({ev.frame - loopFrames, ev.b0, ev.b1, ev.b2});
+        if (ev.frame >= 2 * loopFrames) third.push_back({ev.frame - 2 * loopFrames, ev.b0, ev.b1, ev.b2});
+    }
+    CHECK(!second.empty());
+    CHECK(second == third);
 }
 
 void paramsClampAndRound() {
@@ -300,6 +373,9 @@ void engineTests() {
     allNotesOffCc();
     seedsReplay();
     regenerationFollowsDependencies();
+    chordsFollowSettings();
+    oneOctaveFewerNotes();
+    loopReplaysTheSameChords();
     paramsClampAndRound();
     octaveMinNeverAboveMax();
     chordMinNeverAboveMax();
